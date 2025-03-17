@@ -1,7 +1,7 @@
 package Viewer;
 
 import Model.*;
-import Control.GameController;
+import Control.ultimateGameController;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
@@ -13,7 +13,7 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 
 public class ultimateGame extends Application {
-    private GameController gameController;
+    private ultimateGameController ultimateGameController;
     private Label statusLabel;
     private Button[][] buttons = new Button[9][9];
 
@@ -22,14 +22,12 @@ public class ultimateGame extends Application {
         // Initialize the game and players
         Player player1 = new Player("Player 1", Symbol.X);
         Player player2 = new Player("Player 2", Symbol.O);
-        gameController = new GameController(player1, player2, 9, 9);
+        ultimateGameController = new ultimateGameController(player1, player2);
 
         stage.setTitle("Ultimate Tic Tac Toe");
 
         statusLabel = new Label("Current Player: Player 1 (X)");
-
         Font font = new Font("verdana", 20);
-        
         statusLabel.setFont(font);
         statusLabel.setBorder(new Border(new BorderStroke(Color.BLACK, BorderStrokeStyle.SOLID, CornerRadii.EMPTY, BorderWidths.DEFAULT)));
 
@@ -44,10 +42,10 @@ public class ultimateGame extends Application {
             for (int j = 0; j < 9; j++) {
                 buttons[i][j] = new Button();
                 buttons[i][j].setPrefSize(100, 100);
-                buttons[i][j].setFont(Font.font("verdana",20));
+                buttons[i][j].setFont(Font.font("verdana", 20));
                 final int row = i;
                 final int col = j;
-                buttons[i][j].setOnAction(e->handleButtonClick(row,col));
+                buttons[i][j].setOnAction(e -> handleButtonClick(row, col));
                 gridPane.add(buttons[i][j], j, i);
             }
         }
@@ -63,25 +61,27 @@ public class ultimateGame extends Application {
         stage.setMinWidth(600);
         stage.show();
     }
+
     public static void main(String[] args) {
         launch(args);
     }
-    private void handleButtonClick(int row, int col){
-        if(gameController.handleMove(row, col)){
-            Board board = gameController.getGame().getBoard();
+
+    private void handleButtonClick(int row, int col) {
+        if (ultimateGameController.handleMove(row, col)) {
+            UltimateBoard board = ultimateGameController.getUltimateGame().getBoard();
             buttons[row][col].setText(board.getCells()[row][col].getSymbol().toString());
-            if(gameController.getGame().isGameOver()){
-                statusLabel.setText("Winner is "+gameController.getGame().getCurrentPlayer().getName());
+            if (ultimateGameController.getUltimateGame().isGameOver()) {
+                statusLabel.setText("Winner is " + ultimateGameController.getUltimateGame().getCurrentPlayer().getName());
                 disableBoard();
-            }
-            else{
-                statusLabel.setText("Current Player: "+gameController.getGame().getCurrentPlayer().getName());
+            } else {
+                statusLabel.setText("Current Player: " + ultimateGameController.getUltimateGame().getCurrentPlayer().getName());
             }
         }
     }
-    private void disableBoard(){
-        for(int i = 0 ; i< 9;i++){
-            for(int j = 0 ; j<9;j++){
+
+    private void disableBoard() {
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
                 buttons[i][j].setDisable(true);
             }
         }

@@ -5,13 +5,12 @@ public class UltimateBoard implements BoardGame {
     private int col;
     private Cell[][] cells;
 
-    // Constructor for the ultimate board
-    public UltimateBoard() {
-        this.row = 9;
-        this.col = 9;
-        cells = new Cell[9][9];
-        for (int i = 0; i < 9; i++) {
-            for (int j = 0; j < 9; j++) {
+    public UltimateBoard(int row, int col) {
+        this.row = row;
+        this.col = col;
+        cells = new Cell[row][col];
+        for (int i = 0; i < row; i++) {
+            for (int j = 0; j < col; j++) {
                 cells[i][j] = new Cell();
             }
         }
@@ -29,6 +28,18 @@ public class UltimateBoard implements BoardGame {
         return true;
     }
 
+   
+    public boolean makeMove(int rowIndex, int columnIndex, Player player) {
+        if (rowIndex < 0 || rowIndex >= row || columnIndex < 0 || columnIndex >= col) {
+            throw new IllegalArgumentException("Invalid row index or column index");
+        }
+        if (cells[rowIndex][columnIndex].isEmpty()) {
+            cells[rowIndex][columnIndex].setSymbol(player.getSymbol());
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public boolean checkWin(Player player) {
         return isDiagonalWin(player) || isHorizontalWin(player) || isVerticalWin(player);
@@ -37,8 +48,32 @@ public class UltimateBoard implements BoardGame {
     @Override
     public boolean isDiagonalWin(Player player) {
         // Check right diagonal
-        
-        return isRightDiagonalWin(player) || isLeftDiagonalWin(player);
+        int countRightDiagonal = 0;
+        for (int i = 0; i < row; i++) {
+            if (cells[i][i].getSymbol() == player.getSymbol()) {
+                countRightDiagonal++;
+                if (countRightDiagonal == 5) {
+                    return true;
+                }
+            } else {
+                countRightDiagonal = 0;
+            }
+        }
+
+        // Check left diagonal
+        int countLeftDiagonal = 0;
+        for (int i = 0; i < row; i++) {
+            if (cells[i][row - 1 - i].getSymbol() == player.getSymbol()) {
+                countLeftDiagonal++;
+                if (countLeftDiagonal == 5) {
+                    return true;
+                }
+            } else {
+                countLeftDiagonal = 0;
+            }
+        }
+
+        return false;
     }
 
     @Override
@@ -77,49 +112,7 @@ public class UltimateBoard implements BoardGame {
         return false;
     }
 
-    public boolean makeMove(int rowIndex, int columnIndex, Player player) {
-        if (rowIndex < 0 || rowIndex >= row || columnIndex < 0 || columnIndex >= col) {
-            throw new IllegalArgumentException("Invalid row index or column index");
-        }
-        if (cells[rowIndex][columnIndex].isEmpty()) {
-            cells[rowIndex][columnIndex].setSymbol(player.getSymbol());
-            return true;
-        }
-        return false;
-    }
-
     public Cell[][] getCells() {
         return cells;
-    }
-    private boolean isRightDiagonalWin(Player player){
-        int countRightDiagonal= 0 ;
-        int i = 0 ;
-        while(i<9){
-            if(cells[i][i].getSymbol()==player.getSymbol()){
-                countRightDiagonal++;
-            }
-            if(countRightDiagonal==5){
-                return true;
-            }
-            i++;
-        }
-        return false;
-    }
-    /*TODO
-     * IMPLEMENT THIS MEHTOD
-     */
-    public boolean isLeftDiagonalWin(Player player){
-        int countLeftDiagonal = 0;
-        int i  = 8 ;
-        int j = 0;
-        while(i>0){
-            if(cells[j][i].getSymbol()==player.getSymbol()){
-                countLeftDiagonal++;
-            }
-            if(countLeftDiagonal==5){
-                return true;
-            }
-        }
-        return false;
     }
 }
