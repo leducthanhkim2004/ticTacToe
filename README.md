@@ -1,9 +1,7 @@
 # Tic Tac Toe 
 
 This repo include 2 board game demo  tic tac toe 9x9 and 3x3 build on JavaFx
-## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install foobar.
 
 ```bash
 git clone https://github.com/leducthanhkim2004/ticTacToe.git
