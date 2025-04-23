@@ -8,6 +8,34 @@
             "type": "java",
             "name": "Server",
             "request": "launch",
+            "mainClass": "your.module.name/Online.Server",
+            "projectName": "demo"
+        },
+        {
+            "type": "java",
+            "name": "App",
+            "request": "launch",
+            "mainClass": "your.module.name/comnet.App",
+            "projectName": "demo"
+        },
+        {
+            "type": "java",
+            "name": "Server",
+            "request": "launch",
+            "mainClass": "comnet/Online.Server",
+            "projectName": "demo"
+        },
+        {
+            "type": "java",
+            "name": "Server",
+            "request": "launch",
+            "mainClass": "comnet/Server.Server",
+            "projectName": "demo"
+        },
+        {
+            "type": "java",
+            "name": "Server",
+            "request": "launch",
             "mainClass": "comnet/Control.Server",
             "projectName": "demo"
         },

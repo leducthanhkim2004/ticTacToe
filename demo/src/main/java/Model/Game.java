@@ -1,20 +1,11 @@
 package Model;
 
-public class Game {
+public class Game extends AbstractGame {
     private Board board;
-    private Player currentPlayer;
-    private Player player1;
-    private Player player2;
-    private boolean gameOver;
-    private int row;
-    private int col;
 
-    public Game(Player player1, Player player2,int row,int col) {
-        this.player1 = player1;
-        this.player2 = player2;
-        this.currentPlayer = player1;
-        this.board = new Board(row,col);
-        this.gameOver = false;
+    public Game(Player player1, Player player2) {
+        super(player1, player2);
+        this.board = new Board(); // 3x3 board
     }
 
     public boolean playTurn(int row, int column) {
@@ -23,7 +14,15 @@ public class Game {
         }
         if (board.checkWin(currentPlayer)) {
             gameOver = true;
-        } else {
+            winner = currentPlayer; // Set the winner!
+            return true;
+        } 
+        else  if (board.isBoardFull()) {
+            gameOver = true;
+            // winner remains null for a draw
+            return true;
+        }
+        else {
             switchPlayer();
         }
         return true;
@@ -41,7 +40,7 @@ public class Game {
         return gameOver;
     }
 
-    private void switchPlayer() {
+    protected void switchPlayer() {
         currentPlayer = (currentPlayer == player1) ? player2 : player1;
     }
 }

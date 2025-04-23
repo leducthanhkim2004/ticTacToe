@@ -92,34 +92,88 @@ public class UltimateBoard implements BoardGame {
         return cells;
     }
     private boolean isRightDiagonalWin(Player player){
-        int countRightDiagonal= 0 ;
-        int i = 0 ;
-        while(i<9){
-            if(cells[i][i].getSymbol()==player.getSymbol()){
+        // Check main right diagonal
+        int countRightDiagonal = 0;
+        for(int i = 0; i < row; i++){
+            if(cells[i][i].getSymbol() == player.getSymbol()){
                 countRightDiagonal++;
+                if(countRightDiagonal == 5){
+                    return true;
+                }
+            } else {
+                countRightDiagonal = 0;  // Reset counter if sequence breaks
             }
-            if(countRightDiagonal==5){
-                return true;
-            }
-            i++;
         }
+        
+        // Check all possible right diagonals that could fit 5 symbols
+        for (int offset = 1; offset <= row-5; offset++) {
+            // Check diagonals above the main diagonal
+            countRightDiagonal = 0;
+            for (int i = 0; i < row-offset; i++) {
+                if (cells[i][i+offset].getSymbol() == player.getSymbol()) {
+                    countRightDiagonal++;
+                    if (countRightDiagonal == 5) return true;
+                } else {
+                    countRightDiagonal = 0;
+                }
+            }
+            
+            // Check diagonals below the main diagonal
+            countRightDiagonal = 0;
+            for (int i = offset; i < row; i++) {
+                if (cells[i][i-offset].getSymbol() == player.getSymbol()) {
+                    countRightDiagonal++;
+                    if (countRightDiagonal == 5) return true;
+                } else {
+                    countRightDiagonal = 0;
+                }
+            }
+        }
+        
         return false;
     }
-    /*TODO
-     * IMPLEMENT THIS MEHTOD
-     */
+
     public boolean isLeftDiagonalWin(Player player){
+        // Check for 5 consecutive symbols on any left diagonal
+        
+        // Check main left diagonal
         int countLeftDiagonal = 0;
-        int i  = 8 ;
-        int j = 0;
-        while(i>0){
-            if(cells[j][i].getSymbol()==player.getSymbol()){
+        for(int i = 0; i < row; i++) {
+            if(cells[i][row-1-i].getSymbol() == player.getSymbol()){
                 countLeftDiagonal++;
-            }
-            if(countLeftDiagonal==5){
-                return true;
+                if(countLeftDiagonal == 5){
+                    return true;
+                }
+            } else {
+                countLeftDiagonal = 0;
             }
         }
+        
+        // Check all possible left diagonals that could fit 5 symbols
+        for (int offset = 1; offset <= row-5; offset++) {
+            // Check diagonals above the main diagonal
+            countLeftDiagonal = 0;
+            for (int i = 0; i < row-offset; i++) {
+                if (cells[i][row-1-i-offset].getSymbol() == player.getSymbol()) {
+                    countLeftDiagonal++;
+                    if (countLeftDiagonal == 5) return true;
+                } else {
+                    countLeftDiagonal = 0;
+                }
+            }
+            
+            // Check diagonals below the main diagonal
+            countLeftDiagonal = 0;
+            for (int i = offset; i < row; i++) {
+                if (cells[i][row-1-(i-offset)].getSymbol() == player.getSymbol()) {
+                    countLeftDiagonal++;
+                    if (countLeftDiagonal == 5) return true;
+                } else {
+                    countLeftDiagonal = 0;
+                }
+            }
+        }
+        
         return false;
     }
 }

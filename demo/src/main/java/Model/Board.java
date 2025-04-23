@@ -6,9 +6,9 @@ public class Board  implements BoardGame{
     private int col;
     private Cell[][] cells;
 
-    public Board(int row, int col) {
-        this.row = row;
-        this.col = col;
+    public Board() {
+        this.row = 3;
+        this.col = 3;
         cells = new Cell[row][col];
         for (int i = 0; i < row; i++) {
             for (int j = 0; j < col; j++) {
