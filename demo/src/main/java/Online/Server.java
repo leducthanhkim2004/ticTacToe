@@ -3,16 +3,23 @@ package Online;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.*;
 import java.util.concurrent.*;
-import java.util.Map;
-import java.util.UUID;
 import Factory.GameFactory.GameType;
 
 public class Server {
     private static final int PORT = 1234;
     private static final ExecutorService threadPool = Executors.newFixedThreadPool(20);
-    private static final BlockingQueue<playerHandler> waitingList = new LinkedBlockingQueue<>();
-    private static final Map<String, gameSession> activeSessions = new ConcurrentHashMap<>();
+    
+    // Separate queues for different game types
+    private final Map<GameType, Queue<playerHandler>> waitingLists = new ConcurrentHashMap<>();
+    private final Map<String, gameSession> activeSessions = new ConcurrentHashMap<>();
+    
+    public Server() {
+        // Initialize queues for each game type
+        waitingLists.put(GameType.STANDARD, new ConcurrentLinkedQueue<>());
+        waitingLists.put(GameType.ULTIMATE, new ConcurrentLinkedQueue<>());
+    }
     
     public static void main(String[] args) {
         new Server().start();
@@ -21,6 +28,7 @@ public class Server {
     public void start() {
         System.out.println("Server starting on port " + PORT);
         try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+            System.out.println("Server started successfully!");
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("New client connected: " + clientSocket.getInetAddress());
@@ -37,18 +45,22 @@ public class Server {
         }
     }
     
-    public synchronized void addToWaitingList(playerHandler player) {
+    public synchronized void addToWaitingList(playerHandler player, GameType gameType) {
+        Queue<playerHandler> waitingList = waitingLists.get(gameType);
         waitingList.add(player);
-        System.out.println("Player added to waiting list. Size: " + waitingList.size());
-        pairPlayers();
+        System.out.println("Player added to " + gameType + " waiting list. Size: " + waitingList.size());
+        pairPlayers(gameType);
     }
     
     public synchronized void removeFromWaitingList(playerHandler player) {
-        waitingList.remove(player);
-        System.out.println("Player removed from waiting list. Size: " + waitingList.size());
+        for (Queue<playerHandler> queue : waitingLists.values()) {
+            queue.remove(player);
+        }
     }
     
-    private synchronized void pairPlayers() {
+    private synchronized void pairPlayers(GameType gameType) {
+        Queue<playerHandler> waitingList = waitingLists.get(gameType);
+        
         // Need at least 2 players to make a match
         if (waitingList.size() >= 2) {
             playerHandler player1 = waitingList.poll();
@@ -56,13 +68,13 @@ public class Server {
             
             // Create and start a game session
             String sessionId = UUID.randomUUID().toString();
-            gameSession session = new gameSession(player1, player2, GameType.STANDARD, this);
+            gameSession session = new gameSession(player1, player2, gameType, this);
             activeSessions.put(sessionId, session);
             
             // Start the game session in a new thread
             threadPool.execute(session);
             
-            System.out.println("New game session created: " + sessionId);
+            System.out.println("New " + gameType + " game session created: " + sessionId);
         }
     }
     

@@ -3,6 +3,7 @@ package Online;
 import java.io.*;
 import java.net.Socket;
 import Model.*;
+import Factory.GameFactory.GameType;
 
 public class playerHandler implements Runnable {
     private Socket socket;
@@ -11,6 +12,7 @@ public class playerHandler implements Runnable {
     private Player player;
     private gameSession currentSession;
     private String playerName;
+    private GameType preferredGameType = GameType.STANDARD; // Default to 3x3
     private boolean connected = true;
     private Server server;
     
@@ -29,7 +31,7 @@ public class playerHandler implements Runnable {
     @Override
     public void run() {
         try {
-            // First message should be player registration with name
+            // First message should be player registration
             String registerMessage = in.readUTF();
             handleRegistration(registerMessage);
             
@@ -39,22 +41,34 @@ public class playerHandler implements Runnable {
                 processMessage(message);
             }
         } catch (IOException e) {
-            System.out.println("Connection lost with player: " + playerName);
+            System.out.println("Connection lost with player: " + (playerName != null ? playerName : "unknown"));
         } finally {
             handleDisconnect();
         }
     }
     
     private void handleRegistration(String message) throws IOException {
-        // Expected format: REGISTER:playerName
+        // Expected format: REGISTER:playerName[:gameType]
         String[] parts = message.split(":");
         if (parts[0].equals("REGISTER") && parts.length > 1) {
             this.playerName = parts[1];
             this.player = new Player(playerName, null); // Symbol will be assigned later
+            
+            // Check if game type is specified
+            if (parts.length > 2) {
+                try {
+                    preferredGameType = GameType.valueOf(parts[2]);
+                } catch (IllegalArgumentException e) {
+                    // Invalid game type, stick with default
+                }
+            }
+            
             sendMessage("CONNECTED:" + playerName);
             
-            // Add player to waiting queue
-            server.addToWaitingList(this);
+            // Send game type options and wait for selection
+            sendMessage("GAME_TYPES:STANDARD,ULTIMATE");
+            
+            System.out.println("Player registered: " + playerName);
         } else {
             sendMessage("ERROR:Invalid registration");
             socket.close();
@@ -68,6 +82,11 @@ public class playerHandler implements Runnable {
             String command = parts[0];
             
             switch (command) {
+                case "SELECT_GAME":
+                    if (parts.length > 1) {
+                        handleGameTypeSelection(parts[1]);
+                    }
+                    break;
                 case "MOVE":
                     if (currentSession != null && parts.length >= 3) {
                         int row = Integer.parseInt(parts[1]);
@@ -92,6 +111,22 @@ public class playerHandler implements Runnable {
             } catch (IOException ex) {
                 connected = false;
             }
+        }
+    }
+    
+    private void handleGameTypeSelection(String gameTypeStr) throws IOException {
+        try {
+            GameType selectedType = GameType.valueOf(gameTypeStr);
+            this.preferredGameType = selectedType;
+            
+            sendMessage("GAME_SELECTED:" + gameTypeStr);
+            System.out.println(playerName + " selected game type: " + gameTypeStr);
+            
+            // Add to appropriate waiting list
+            server.addToWaitingList(this, preferredGameType);
+            
+        } catch (IllegalArgumentException e) {
+            sendMessage("ERROR:Invalid game type");
         }
     }
     
@@ -133,5 +168,9 @@ public class playerHandler implements Runnable {
     
     public String getPlayerName() {
         return playerName;
+    }
+    
+    public GameType getPreferredGameType() {
+        return preferredGameType;
     }
 }

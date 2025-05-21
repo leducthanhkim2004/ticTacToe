@@ -11,6 +11,7 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 import Model.*;
+import Factory.GameFactory.GameType;
 
 import java.io.*;
 import java.net.Socket;
@@ -29,11 +30,16 @@ public class OnlineGameView extends Application {
     private int boardSize = 3; // Default to standard game
     private boolean isMyTurn = false;
     private Symbol mySymbol;
+    private Stage primaryStage;
+    private BorderPane root;
+    private GridPane boardGrid;
     
     @Override
     public void start(Stage primaryStage) {
+        this.primaryStage = primaryStage;
+        
         // Main layout
-        BorderPane root = new BorderPane();
+        root = new BorderPane();
         
         // Top section
         VBox topBox = new VBox(10);
@@ -42,17 +48,61 @@ public class OnlineGameView extends Application {
         statusLabel.setPadding(new Insets(10));
         topBox.getChildren().add(statusLabel);
         
-        // Center section with game board
-        GridPane boardGrid = new GridPane();
+        // Create the game selection pane
+        VBox gameSelectionBox = createGameSelectionPane();
+        
+        // Add components to the root layout
+        root.setTop(topBox);
+        root.setCenter(gameSelectionBox);
+        
+        // Set up the scene
+        Scene scene = new Scene(root, 700, 600);
+        primaryStage.setTitle("Online Tic Tac Toe");
+        primaryStage.setScene(scene);
+        primaryStage.show();
+        
+        // Connect to server when the view is shown
+        connectToServer();
+        
+        // Handle window close
+        primaryStage.setOnCloseRequest(e -> disconnect());
+    }
+    
+    private VBox createGameSelectionPane() {
+        VBox selectionBox = new VBox(20);
+        selectionBox.setAlignment(Pos.CENTER);
+        selectionBox.setPadding(new Insets(50));
+        
+        Label titleLabel = new Label("Select Game Type");
+        titleLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 20));
+        
+        Button standardButton = new Button("Standard Tic Tac Toe (3x3)");
+        standardButton.setPrefWidth(250);
+        standardButton.setOnAction(e -> selectGameType(GameType.STANDARD));
+        
+        Button ultimateButton = new Button("Ultimate Tic Tac Toe (9x9)");
+        ultimateButton.setPrefWidth(250);
+        ultimateButton.setOnAction(e -> selectGameType(GameType.ULTIMATE));
+        
+        selectionBox.getChildren().addAll(titleLabel, standardButton, ultimateButton);
+        
+        return selectionBox;
+    }
+    
+    private GridPane createGameBoard(int size) {
+        // Create or recreate the board grid
+        boardGrid = new GridPane();
         boardGrid.setAlignment(Pos.CENTER);
         boardGrid.setHgap(5);
         boardGrid.setVgap(5);
         
-        buttons = new Button[9][9]; // Maximum size for Ultimate
-        for (int row = 0; row < 9; row++) {
-            for (int col = 0; col < 9; col++) {
+        buttons = new Button[size][size];
+        int buttonSize = size == 3 ? 100 : 60;
+        
+        for (int row = 0; row < size; row++) {
+            for (int col = 0; col < size; col++) {
                 Button button = new Button();
-                button.setPrefSize(60, 60);
+                button.setPrefSize(buttonSize, buttonSize);
                 button.setFont(Font.font("Arial", FontWeight.BOLD, 18));
                 
                 final int r = row;
@@ -61,13 +111,37 @@ public class OnlineGameView extends Application {
                 
                 buttons[row][col] = button;
                 boardGrid.add(button, col, row);
-                
-                // Initially hide all buttons
-                button.setVisible(false);
             }
         }
         
-        // Right side chat panel
+        return boardGrid;
+    }
+    
+    private void selectGameType(GameType gameType) {
+        try {
+            if (connected) {
+                // Send game type selection to server
+                out.writeUTF("SELECT_GAME:" + gameType.name());
+                
+                // Update the board size based on game type
+                boardSize = gameType == GameType.STANDARD ? 3 : 9;
+                
+                // Update status
+                statusLabel.setText("Selected " + gameType + " game. Waiting for opponent...");
+                
+                // Switch to game board view
+                setupGameInterface();
+            }
+        } catch (IOException e) {
+            statusLabel.setText("Error selecting game: " + e.getMessage());
+        }
+    }
+    
+    private void setupGameInterface() {
+        // Create game board
+        GridPane boardGrid = createGameBoard(boardSize);
+        
+        // Create chat panel
         VBox chatBox = new VBox(10);
         chatBox.setPadding(new Insets(10));
         chatBox.setPrefWidth(200);
@@ -86,22 +160,11 @@ public class OnlineGameView extends Application {
         
         chatBox.getChildren().addAll(chatLabel, chatArea, chatInputBox);
         
-        // Add all components to the main layout
-        root.setTop(topBox);
-        root.setCenter(boardGrid);
-        root.setRight(chatBox);
-        
-        // Set up the scene
-        Scene scene = new Scene(root, 700, 600);
-        primaryStage.setTitle("Online Tic Tac Toe");
-        primaryStage.setScene(scene);
-        primaryStage.show();
-        
-        // Connect to server when the view is shown
-        connectToServer();
-        
-        // Handle window close
-        primaryStage.setOnCloseRequest(e -> disconnect());
+        // Update the root layout
+        Platform.runLater(() -> {
+            root.setCenter(boardGrid);
+            root.setRight(chatBox);
+        });
     }
     
     private void connectToServer() {
@@ -109,7 +172,10 @@ public class OnlineGameView extends Application {
         new Thread(() -> {
             try {
                 // Connect to server (change host/port as needed)
+                System.out.println("Attempting to connect to localhost:1234...");
                 socket = new Socket("localhost", 1234);
+                System.out.println("Connected successfully!");
+                
                 in = new DataInputStream(socket.getInputStream());
                 out = new DataOutputStream(socket.getOutputStream());
                 
@@ -120,7 +186,7 @@ public class OnlineGameView extends Application {
                 out.writeUTF("REGISTER:" + playerName);
                 
                 Platform.runLater(() -> 
-                    statusLabel.setText("Connected as " + playerName + ". Waiting for opponent..."));
+                    statusLabel.setText("Connected as " + playerName + ". Select game type."));
                 
                 // Start listening for server messages
                 listenForMessages();
@@ -128,6 +194,8 @@ public class OnlineGameView extends Application {
             } catch (IOException e) {
                 Platform.runLater(() -> 
                     statusLabel.setText("Could not connect to server: " + e.getMessage()));
+                System.err.println("Connection error: " + e.getMessage());
+                e.printStackTrace();
             }
         }).start();
     }
@@ -137,6 +205,7 @@ public class OnlineGameView extends Application {
             try {
                 while (connected) {
                     String message = in.readUTF();
+                    System.out.println("Received: " + message);
                     handleServerMessage(message);
                 }
             } catch (IOException e) {
@@ -150,14 +219,21 @@ public class OnlineGameView extends Application {
     }
     
     private void handleServerMessage(String message) {
-        System.out.println("Received: " + message);
         String[] parts = message.split(":");
         String command = parts[0];
         
         Platform.runLater(() -> {
             switch (command) {
                 case "CONNECTED":
-                    statusLabel.setText("Connected as " + parts[1] + ". Waiting for opponent...");
+                    statusLabel.setText("Connected as " + parts[1] + ". Select game type.");
+                    break;
+                    
+                case "GAME_TYPES":
+                    // Server sent available game types
+                    break;
+                    
+                case "GAME_SELECTED":
+                    statusLabel.setText(parts[1] + " game selected. Waiting for opponent...");
                     break;
                     
                 case "GAME_START":
@@ -211,23 +287,11 @@ public class OnlineGameView extends Application {
             boardSize = gameType.equals("ULTIMATE") ? 9 : 3;
             mySymbol = symbolStr.equals("X") ? Symbol.X : Symbol.O;
             
+            // Recreate the game board with the correct size
+            setupGameInterface();
+            
             statusLabel.setText("Game started! You are " + symbolStr + 
                                 ". Playing against: " + opponentName);
-            
-            // Configure visible buttons based on board size
-            for (int row = 0; row < 9; row++) {
-                for (int col = 0; col < 9; col++) {
-                    boolean visible = row < boardSize && col < boardSize;
-                    buttons[row][col].setVisible(visible);
-                    
-                    // Adjust button size
-                    if (visible) {
-                        int buttonSize = boardSize == 3 ? 100 : 60;
-                        buttons[row][col].setPrefSize(buttonSize, buttonSize);
-                        buttons[row][col].setText("");
-                    }
-                }
-            }
         }
     }
     
@@ -264,82 +328,145 @@ public class OnlineGameView extends Application {
             int col = Integer.parseInt(parts[2]);
             String symbol = parts[3];
             
-            buttons[row][col].setText(symbol);
-            String color = symbol.equals("X") ? "blue" : "red";
-            buttons[row][col].setStyle("-fx-text-fill: " + color + ";");
+            if (row < boardSize && col < boardSize) {
+                buttons[row][col].setText(symbol);
+                String color = symbol.equals("X") ? "blue" : "red";
+                buttons[row][col].setStyle("-fx-text-fill: " + color + ";");
+            }
         }
-    }
-    
-    private void handleGameOver(String result) {
-        switch (result) {
-            case "WIN":
-                statusLabel.setText("Game over - You won!");
-                break;
-            case "LOSE":
-                statusLabel.setText("Game over - You lost");
-                break;
-            case "DRAW":
-                statusLabel.setText("Game over - It's a draw!");
-                break;
-        }
-        disableAllButtons();
     }
     
     private void handleButtonClick(int row, int col) {
-        if (!isMyTurn) {
-            statusLabel.setText("Not your turn!");
-            return;
-        }
-        
-        if (row >= boardSize || col >= boardSize || !buttons[row][col].getText().isEmpty()) {
-            return;
-        }
-        
-        try {
-            // Send move to server
-            out.writeUTF("MOVE:" + row + ":" + col);
+        if (isMyTurn && connected) {
+            // Don't allow clicking on already filled cells
+            if (buttons[row][col].getText() != null && !buttons[row][col].getText().isEmpty()) {
+                return;
+            }
             
-            // Disable further moves until server confirms
-            isMyTurn = false;
-            statusLabel.setText("Waiting for opponent...");
-            
-        } catch (IOException e) {
-            statusLabel.setText("Error sending move: " + e.getMessage());
+            try {
+                // FIXED: Send move to server with correct command name - MOVE instead of MAKE_MOVE
+                out.writeUTF("MOVE:" + row + ":" + col);
+                
+                // Update local board immediately for responsiveness
+                buttons[row][col].setText(mySymbol.toString());
+                buttons[row][col].setStyle("-fx-text-fill: " + (mySymbol == Symbol.X ? "blue" : "red") + ";");
+                
+                isMyTurn = false;
+                statusLabel.setText("Waiting for opponent's move...");
+            } catch (IOException e) {
+                statusLabel.setText("Error sending move: " + e.getMessage());
+            }
+        } else {
+            statusLabel.setText("Not your turn yet!");
         }
     }
     
     private void sendChat() {
-        String message = chatField.getText().trim();
-        if (message.isEmpty()) return;
-        
-        try {
-            out.writeUTF("CHAT:" + message);
-            chatField.clear();
-        } catch (IOException e) {
-            statusLabel.setText("Error sending chat: " + e.getMessage());
-        }
-    }
-    
-    private void disableAllButtons() {
-        for (int row = 0; row < boardSize; row++) {
-            for (int col = 0; col < boardSize; col++) {
-                buttons[row][col].setDisable(true);
+        if (connected && !chatField.getText().trim().isEmpty()) {
+            try {
+                String message = chatField.getText().trim();
+                // FIXED: Use CHAT instead of SEND_CHAT to match server expectations
+                out.writeUTF("CHAT:" + message);
+                chatField.clear();
+                
+                // Update chat area locally
+                chatArea.appendText("Me: " + message + "\n");
+            } catch (IOException e) {
+                statusLabel.setText("Error sending chat: " + e.getMessage());
             }
         }
     }
     
     private void disconnect() {
-        connected = false;
         try {
+            connected = false;
             if (out != null) {
+                // FIXED: Use QUIT instead of DISCONNECT to match server expectations
                 out.writeUTF("QUIT");
+                out.flush();
             }
-            if (socket != null && !socket.isClosed()) {
+            if (socket != null) {
                 socket.close();
             }
         } catch (IOException e) {
             System.err.println("Error disconnecting: " + e.getMessage());
         }
+        // Removed the Platform.exit() and System.exit(0) calls which could cause unexpected application termination
+    }
+    
+    private void disableAllButtons() {
+        if (buttons == null) return;
+        
+        Platform.runLater(() -> {
+            try {
+                for (int row = 0; row < boardSize; row++) {
+                    for (int col = 0; col < boardSize; col++) {
+                        if (row < buttons.length && col < buttons[row].length && buttons[row][col] != null) {
+                            buttons[row][col].setDisable(true);
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("Error disabling buttons: " + e.getMessage());
+                e.printStackTrace();
+            }
+        });
+    }
+    
+    private void handleGameOver(String result) {
+        try {
+            switch (result) {
+                case "WIN":
+                    statusLabel.setText("Game over - You won!");
+                    break;
+                case "LOSE":
+                    statusLabel.setText("Game over - You lost");
+                    break;
+                case "DRAW":
+                    statusLabel.setText("Game over - It's a draw!");
+                    break;
+                default:
+                    statusLabel.setText("Game over");
+                    break;
+            }
+            disableAllButtons();
+            
+            // Add play again button
+            Button playAgainBtn = new Button("Play Again");
+            playAgainBtn.setOnAction(e -> {
+                // Reset the view to selection mode
+                setupSelectionInterface();
+            });
+            
+            HBox buttonsBox = new HBox(10);
+            buttonsBox.setAlignment(Pos.CENTER);
+            buttonsBox.getChildren().add(playAgainBtn);
+            
+            VBox gameOverBox = new VBox(10);
+            gameOverBox.setAlignment(Pos.BOTTOM_CENTER);
+            gameOverBox.getChildren().add(buttonsBox);
+            
+            // Add game over interface at the bottom
+            Platform.runLater(() -> {
+                if (root != null) {
+                    root.setBottom(gameOverBox);
+                }
+            });
+        } catch (Exception e) {
+            System.err.println("Error handling game over: " + e.getMessage());
+        }
+    }
+
+    private void setupSelectionInterface() {
+        Platform.runLater(() -> {
+            if (root != null) {
+                VBox selectionBox = createGameSelectionPane();
+                root.setCenter(selectionBox);
+                root.setRight(null);
+                root.setBottom(null);
+                statusLabel.setText("Select a game type");
+            }
+        });
     }
     
     public static void main(String[] args) {
