@@ -356,21 +356,25 @@ root.setBackground(new Background(backgroundFill));
         switch (result) {
             case "WIN":
                 statusLabel.setText("Game over - You won!");
-                if (gameOverCallback != null && player != null) {
-                    gameOverCallback.accept(Player.GameResult.WIN);
-                }
+                // REMOVE THE CALLBACK FOR ONLINE GAMES
+                // We're already updating the database in gameSession.updatePlayerStats()
+                // if (gameOverCallback != null && player != null) {
+                //     gameOverCallback.accept(Player.GameResult.WIN);
+                // }
                 break;
             case "LOSE":
                 statusLabel.setText("Game over - You lost");
-                if (gameOverCallback != null && player != null) {
-                    gameOverCallback.accept(Player.GameResult.LOSE);
-                }
+                // REMOVE THE CALLBACK FOR ONLINE GAMES
+                // if (gameOverCallback != null && player != null) {
+                //     gameOverCallback.accept(Player.GameResult.LOSE);
+                // }
                 break;
             case "DRAW":
                 statusLabel.setText("Game over - It's a draw!");
-                if (gameOverCallback != null && player != null) {
-                    gameOverCallback.accept(Player.GameResult.DRAW);
-                }
+                // REMOVE THE CALLBACK FOR ONLINE GAMES
+                // if (gameOverCallback != null && player != null) {
+                //     gameOverCallback.accept(Player.GameResult.DRAW);
+                // }
                 break;
             default:
                 statusLabel.setText("Game over");

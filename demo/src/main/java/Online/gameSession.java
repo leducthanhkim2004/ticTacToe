@@ -162,6 +162,7 @@ public class gameSession implements Runnable {
         server.endGameSession(sessionId);
     }
     
+    // This should be in your gameSession.java file, not in UserDatabase.java
     private void updatePlayerStats(Player winner) {
         // Only update stats if players are not guests
         Player p1 = player1.getPlayer();
@@ -171,33 +172,25 @@ public class gameSession implements Runnable {
             if (p1.getName() != null && !p1.getName().startsWith("Guest") && 
                 p2.getName() != null && !p2.getName().startsWith("Guest")) {
                 
-                if (winner == null) {
-                    // It's a draw
-                    try {
+                try {
+                    if (winner == null) {
+                        // For a draw, we pass a special flag to indicate this
                         System.out.println("Recording DRAW between " + p1.getName() + " and " + p2.getName());
-                        // For draws, pass both players to a special method
-                        Database.UserDatabase.recordGameResult(p1.getName(), p2.getName());
-                    } catch (Exception e) {
-                        System.err.println("Error updating stats for draw: " + e.getMessage());
-                    }
-                } else if (winner == p1) {
-                    // Player 1 won
-                    try {
+                        // IMPORTANT: Use a different method for draw to avoid double-counting
+                        Database.UserDatabase.recordDraw(p1.getName(), p2.getName());
+                    } else if (winner == p1) {
+                        // Clear win/loss case
                         System.out.println("Recording WIN for " + p1.getName() + " against " + p2.getName());
-                        // For win/loss, winner first, loser second
-                        Database.UserDatabase.recordGameResult(p1.getName(), p2.getName());
-                    } catch (Exception e) {
-                        System.err.println("Error updating stats for win/loss: " + e.getMessage());
-                    }
-                } else if (winner == p2) {
-                    // Player 2 won
-                    try {
+                        // IMPORTANT: We're skipping the callback to LoginView to avoid double-counting
+                        Database.UserDatabase.recordWinLoss(p1.getName(), p2.getName());
+                    } else if (winner == p2) {
+                        // Clear win/loss case
                         System.out.println("Recording WIN for " + p2.getName() + " against " + p1.getName());
-                        // For win/loss, winner first, loser second
-                        Database.UserDatabase.recordGameResult(p2.getName(), p1.getName());
-                    } catch (Exception e) {
-                        System.err.println("Error updating stats for win/loss: " + e.getMessage());
+                        // IMPORTANT: We're skipping the callback to LoginView to avoid double-counting
+                        Database.UserDatabase.recordWinLoss(p2.getName(), p1.getName());
                     }
+                } catch (Exception e) {
+                    System.err.println("Error updating stats: " + e.getMessage());
                 }
             }
         }

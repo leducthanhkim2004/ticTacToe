@@ -201,47 +201,41 @@ public class UserDatabase {
     }
     
     /**
-     * Record game result
+     * Record game result (DEPRECATED - use recordWinLoss or recordDraw instead)
      * @param winner Winner username (or null for draw)
      * @param loser Loser username (or null for draw)
      * @return true if successful, false otherwise
      */
     public static boolean recordGameResult(String winner, String loser) {
+        System.out.println("WARNING: Using deprecated recordGameResult method. Use recordWinLoss or recordDraw instead.");
+        
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
             
             try {
                 if (winner != null && loser != null && !winner.equals(loser)) {
-                    // Someone won - standard win/loss scenario
-                    updateWin(conn, winner);
-                    updateLoss(conn, loser);
-                    System.out.println("Recorded win for " + winner + " and loss for " + loser);
-                } else if (winner != null && loser != null && winner.equals(loser)) {
-                    // This is an error case - can't win and lose as the same player
-                    System.err.println("Error: Same player cannot win and lose: " + winner);
-                    return false;
-                } else if (winner != null && loser != null) {
-                    // Draw - both players are provided
-                    updateDraw(conn, winner);
-                    updateDraw(conn, loser);
-                    System.out.println("Recorded draw for " + winner + " and " + loser);
-                } else if (winner != null) {
-                    // Only one player provided, treat as draw
-                    updateDraw(conn, winner);
-                    System.out.println("Recorded draw for " + winner);
-                } else if (loser != null) {
-                    // Only one player provided, treat as draw
-                    updateDraw(conn, loser);
-                    System.out.println("Recorded draw for " + loser);
-                } else {
+                    // Win/loss scenario
+                    return recordWinLoss(winner, loser);
+                } else if (winner == null && loser == null) {
                     // No players provided
                     System.err.println("Error: No players provided to record game result");
                     return false;
+                } else {
+                    // Draw scenario or only one player provided
+                    if (winner != null && loser != null) {
+                        return recordDraw(winner, loser);
+                    } else if (winner != null) {
+                        updateDraw(conn, winner);
+                        conn.commit();
+                        return true;
+                    } else if (loser != null) {
+                        updateDraw(conn, loser);
+                        conn.commit();
+                        return true;
+                    }
                 }
                 
-                conn.commit();
-                return true;
-                
+                return false;
             } catch (SQLException e) {
                 conn.rollback();
                 throw e;
@@ -251,6 +245,72 @@ public class UserDatabase {
             
         } catch (SQLException e) {
             System.err.println("Error recording game result: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Record a win for one player and a loss for another player
+     * @param winner Winner username
+     * @param loser Loser username
+     * @return true if successful, false otherwise
+     */
+    public static boolean recordWinLoss(String winner, String loser) {
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            
+            try {
+                // Update winner stats
+                updateWin(conn, winner);
+                // Update loser stats
+                updateLoss(conn, loser);
+                
+                System.out.println("Direct DB update: Win for " + winner + " and loss for " + loser);
+                
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                System.err.println("Error recording win/loss: " + e.getMessage());
+                return false;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting connection: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Record a draw for both players
+     * @param player1 First player username
+     * @param player2 Second player username
+     * @return true if successful, false otherwise
+     */
+    public static boolean recordDraw(String player1, String player2) {
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            
+            try {
+                // Update draw for player1
+                updateDraw(conn, player1);
+                // Update draw for player2
+                updateDraw(conn, player2);
+                
+                System.out.println("Direct DB update: Draw for " + player1 + " and " + player2);
+                
+                conn.commit();
+                return true;
+            } catch (SQLException e) {
+                conn.rollback();
+                System.err.println("Error recording draw: " + e.getMessage());
+                return false;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting connection: " + e.getMessage());
             return false;
         }
     }
