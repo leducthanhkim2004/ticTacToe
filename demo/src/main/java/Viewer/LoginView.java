@@ -112,12 +112,21 @@ public class LoginView extends Application {
             
             // Perform login in background thread
             new Thread(() -> {
+                // Force database lookup for each login attempt
                 Player player = UserDatabase.loginPlayer(username, password);
                 
                 Platform.runLater(() -> {
                     if (player != null) {
+                        // Important: Set the logged in player to the newly retrieved player
                         loggedInPlayer = player;
                         errorLabel.setText("");
+                        
+                        // Clear fields after successful login
+                        usernameField.clear();
+                        passwordField.clear();
+                        
+                        // Recreate game selection panel with fresh data
+                        gameSelectionPanel = null; // Force recreation
                         showGameSelectionPanel();
                     } else {
                         errorLabel.setText("Invalid username or password");
@@ -129,6 +138,12 @@ public class LoginView extends Application {
         // Handle play as guest
         guestButton.setOnAction(e -> {
             loggedInPlayer = new Player("Guest", null);
+            
+            // Clear fields
+            usernameField.clear();
+            passwordField.clear();
+            errorLabel.setText("");
+            
             showGameSelectionPanel();
         });
         
@@ -215,31 +230,35 @@ public class LoginView extends Application {
                         new Thread(() -> {
                             try {
                                 Thread.sleep(1500);
-                                Platform.runLater(() -> showLoginPanel());
-                            } catch (InterruptedException ex) {
-                                Thread.currentThread().interrupt();
-                            }
-                        }).start();
-                    } else {
-                        errorLabel.setTextFill(Color.RED);
-                        errorLabel.setText("Username already exists or registration failed");
-                    }
-                });
-            }).start();
-        });
-        
-        // Handle login link
-        loginLink.setOnAction(e -> showLoginPanel());
-        
-        registerPanel.getChildren().addAll(
-            headerLabel,
-            usernameLabel, usernameField,
-            passwordLabel, passwordField,
-            confirmPasswordLabel, confirmPasswordField,
-            errorLabel,
-            registerButton,
-            loginLink
-        );
+                                Platform.runLater(() -> {
+                                    // IMPORTANT: Recreate login panel to ensure fresh state
+                                    createLoginPanel();
+                                    showLoginPanel();
+                            });
+                        } catch (InterruptedException ex) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }).start();
+                } else {
+                    errorLabel.setTextFill(Color.RED);
+                    errorLabel.setText("Username already exists or registration failed");
+                }
+            });
+        }).start();
+    });
+    
+    // Handle login link
+    loginLink.setOnAction(e -> showLoginPanel());
+    
+    registerPanel.getChildren().addAll(
+        headerLabel,
+        usernameLabel, usernameField,
+        passwordLabel, passwordField,
+        confirmPasswordLabel, confirmPasswordField,
+        errorLabel,
+        registerButton,
+        loginLink
+    );
     }
     
     private void createGameSelectionPanel() {
@@ -483,7 +502,36 @@ public class LoginView extends Application {
     }
     
     private void logout() {
+        // Reset all user-related data
         loggedInPlayer = null;
+        
+        // Clear any cached login data
+        if (loginPanel != null) {
+            // Find the username and password fields and clear them
+            for (int i = 0; i < loginPanel.getChildren().size(); i++) {
+                if (loginPanel.getChildren().get(i) instanceof TextField) {
+                    ((TextField) loginPanel.getChildren().get(i)).clear();
+                } else if (loginPanel.getChildren().get(i) instanceof PasswordField) {
+                    ((PasswordField) loginPanel.getChildren().get(i)).clear();
+                }
+            }
+        }
+        
+        // Clear any error labels
+        for (int i = 0; i < loginPanel.getChildren().size(); i++) {
+            if (loginPanel.getChildren().get(i) instanceof Label) {
+                Label label = (Label) loginPanel.getChildren().get(i);
+                if (label.getTextFill().equals(Color.RED)) {
+                    label.setText("");
+                }
+            }
+        }
+        
+        // Recreate panels to ensure no cached data
+        createLoginPanel();
+        createRegisterPanel();
+        
+        // Show login panel
         showLoginPanel();
         primaryStage.setTitle("TicTacToe - Login");
     }

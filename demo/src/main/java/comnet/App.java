@@ -31,8 +31,13 @@ public class App extends Application {
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
         
-        // Launch the login/signup view instead of the main menu
+        // Set a larger default stage size
+        primaryStage.setWidth(600);
+        primaryStage.setHeight(700);
+        
+        // Launch the login/signup view
         try {
+            // Create a new instance of LoginView every time
             LoginView loginView = new LoginView();
             loginView.start(primaryStage);
         } catch (Exception e) {
