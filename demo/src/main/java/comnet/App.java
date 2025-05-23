@@ -2,11 +2,13 @@ package comnet;
 
 import Viewer.GameView;
 import Viewer.OnlineGameView;
+import Viewer.LoginView;
 import Factory.GameFactory.GameType;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.*;
@@ -19,12 +21,29 @@ import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
 
 public class App extends Application {
+    private Stage primaryStage;
+    
     public static void main(String[] args) {
         launch(args);
     }
 
     @Override
     public void start(Stage primaryStage) {
+        this.primaryStage = primaryStage;
+        
+        // Launch the login/signup view instead of the main menu
+        try {
+            LoginView loginView = new LoginView();
+            loginView.start(primaryStage);
+        } catch (Exception e) {
+            e.printStackTrace();
+            
+            // If login view fails to start, show the original main menu as fallback
+            showMainMenu();
+        }
+    }
+    
+    private void showMainMenu() {
         primaryStage.setTitle("Tic Tac Toe");
 
         // Create gradient background
@@ -46,7 +65,19 @@ public class App extends Application {
         titleLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 28));
         titleLabel.setStyle("-fx-text-fill: #333333;");
 
-        // Buttons
+        // Add login button
+        Button loginButton = createStyledButton("Login / Register");
+        loginButton.setOnAction(e -> {
+            try {
+                LoginView loginView = new LoginView();
+                loginView.start(new Stage());
+                primaryStage.close();
+            } catch (Exception ex) {
+                showError("Could not open login view: " + ex.getMessage());
+            }
+        });
+
+        // Existing buttons
         Button localStandardButton = createStyledButton("Local Play - Standard (3x3)");
         localStandardButton.setOnAction(e -> startLocalGame(GameType.STANDARD));
 
@@ -54,13 +85,17 @@ public class App extends Application {
         localUltimateButton.setOnAction(e -> startLocalGame(GameType.ULTIMATE));
 
         Button onlineButton = createStyledButton("Online Play");
-        onlineButton.setOnAction(e -> startOnlineGame());
+        onlineButton.setOnAction(e -> {
+            // Inform user they need to login for online play
+            showError("Please login first to access online play features.");
+        });
 
         Button exitButton = createStyledButton("Exit");
         exitButton.setOnAction(e -> primaryStage.close());
 
         root.getChildren().addAll(
             titleLabel,
+            loginButton,
             localStandardButton,
             localUltimateButton,
             onlineButton,
@@ -96,5 +131,13 @@ public class App extends Application {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    
+    private void showError(String message) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Information");
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
     }
 }

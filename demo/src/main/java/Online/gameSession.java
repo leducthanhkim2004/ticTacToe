@@ -1,10 +1,8 @@
 package Online;
 
-import java.io.IOException;
 import java.util.UUID;
 
 import Control.GameController;
-import Factory.GameFactory;
 import Factory.GameFactory.GameType;
 import Model.*;
 
@@ -16,12 +14,14 @@ public class gameSession implements Runnable {
     private boolean gameStarted = false;
     private boolean gameOver = false;
     private Server server;
+    private GameType gameType; // Add this field to the class
     
     public gameSession(playerHandler player1, playerHandler player2, GameType gameType, Server server) {
         this.sessionId = UUID.randomUUID().toString();
         this.player1 = player1;
         this.player2 = player2;
         this.server = server;
+        this.gameType = gameType; // Save the game type
         
         // Create players
         Player p1 = player1.getPlayer();
@@ -35,8 +35,8 @@ public class gameSession implements Runnable {
         this.gameController = new GameController(p1, p2, gameType);
         
         // Set players' game session
-        player1.setGameSession(this);
-        player2.setGameSession(this);
+        player1.setCurrentGame(this);
+        player2.setCurrentGame(this);
     }
     
     @Override
@@ -60,28 +60,28 @@ public class gameSession implements Runnable {
     }
     
     public void startGame() {
-        try {
-            gameStarted = true;
-            
-            // Tell players the game is starting
-            String gameTypeStr = gameController.getGame() instanceof Game ? "STANDARD" : "ULTIMATE";
-            player1.sendMessage("GAME_START:" + gameTypeStr + ":X:" + player2.getPlayerName());
-            player2.sendMessage("GAME_START:" + gameTypeStr + ":O:" + player1.getPlayerName());
-            
-            // Send initial board state
-            sendBoardState();
-            
-            // X player goes first
-            player1.sendMessage("YOUR_TURN:true");
-            player2.sendMessage("YOUR_TURN:false");
-            
-        } catch (IOException e) {
-            System.err.println("Error starting game: " + e.getMessage());
-        }
+        gameStarted = true;
+        
+        // Tell players the game is starting using the saved game type
+        String gameTypeStr = gameType.toString();
+        player1.sendMessage("GAME_START:" + gameTypeStr + ":X:" + player2.getPlayerName());
+        player2.sendMessage("GAME_START:" + gameTypeStr + ":O:" + player1.getPlayerName());
+        
+        // Send initial board state
+        sendBoardState();
+        
+        // X player goes first
+        player1.sendMessage("YOUR_TURN:true");
+        player2.sendMessage("YOUR_TURN:false");
     }
     
-    public void handleMove(playerHandler player, int row, int col) {
+    public void handleMove(playerHandler player, String moveData) {
+        // Parse move data
         try {
+            String[] parts = moveData.split(":");
+            int row = Integer.parseInt(parts[0]);
+            int col = Integer.parseInt(parts[1]);
+            
             // Verify it's this player's turn
             Player currentPlayer = gameController.getGame().getCurrentPlayer();
             boolean isPlayer1Turn = currentPlayer == player1.getPlayer();
@@ -113,12 +113,12 @@ public class gameSession implements Runnable {
             } else {
                 player.sendMessage("ERROR:InvalidMove");
             }
-        } catch (IOException e) {
-            System.err.println("Error handling move: " + e.getMessage());
+        } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
+            player.sendMessage("ERROR:InvalidMoveFormat");
         }
     }
     
-    private void sendBoardState() throws IOException {
+    private void sendBoardState() {
         BoardGame board = gameController.getGame().getBoard();
         Cell[][] cells = board.getCells();
         
@@ -137,7 +137,7 @@ public class gameSession implements Runnable {
         broadcast(boardState.toString());
     }
     
-    private void handleGameOver() throws IOException {
+    private void handleGameOver() {
         gameOver = true;
         
         Player winner = gameController.getGame().getWinner();
@@ -155,41 +155,106 @@ public class gameSession implements Runnable {
             broadcast("GAME_OVER:DRAW");
         }
         
+        // Update player stats in database if they're not guests
+        updatePlayerStats(winner);
+        
         // Notify server to end this session
         server.endGameSession(sessionId);
     }
     
-    public void handleDisconnect(playerHandler player) {
+    private void updatePlayerStats(Player winner) {
+        // Only update stats if players are not guests
+        Player p1 = player1.getPlayer();
+        Player p2 = player2.getPlayer();
+        
+        if (p1 != null && p2 != null) {
+            if (p1.getName() != null && !p1.getName().startsWith("Guest") && 
+                p2.getName() != null && !p2.getName().startsWith("Guest")) {
+                
+                if (winner == null) {
+                    // It's a draw
+                    try {
+                        System.out.println("Recording DRAW between " + p1.getName() + " and " + p2.getName());
+                        // For draws, pass both players to a special method
+                        Database.UserDatabase.recordGameResult(p1.getName(), p2.getName());
+                    } catch (Exception e) {
+                        System.err.println("Error updating stats for draw: " + e.getMessage());
+                    }
+                } else if (winner == p1) {
+                    // Player 1 won
+                    try {
+                        System.out.println("Recording WIN for " + p1.getName() + " against " + p2.getName());
+                        // For win/loss, winner first, loser second
+                        Database.UserDatabase.recordGameResult(p1.getName(), p2.getName());
+                    } catch (Exception e) {
+                        System.err.println("Error updating stats for win/loss: " + e.getMessage());
+                    }
+                } else if (winner == p2) {
+                    // Player 2 won
+                    try {
+                        System.out.println("Recording WIN for " + p2.getName() + " against " + p1.getName());
+                        // For win/loss, winner first, loser second
+                        Database.UserDatabase.recordGameResult(p2.getName(), p1.getName());
+                    } catch (Exception e) {
+                        System.err.println("Error updating stats for win/loss: " + e.getMessage());
+                    }
+                }
+            }
+        }
+    }
+    
+    public void handlePlayerDisconnect(playerHandler player) {
         if (gameOver) return;
         
         gameOver = true;
         
-        try {
-            // Notify the other player
-            if (player == player1 && player2 != null) {
-                player2.sendMessage("OPPONENT_DISCONNECTED");
-            } else if (player == player2 && player1 != null) {
-                player1.sendMessage("OPPONENT_DISCONNECTED");
-            }
+        // If game was in progress, count as a loss for disconnected player
+        if (gameStarted) {
+            Player disconnectedPlayer = player.getPlayer();
+            Player otherPlayer = (player == player1) ? player2.getPlayer() : player1.getPlayer();
             
-            // End the session
-            server.endGameSession(sessionId);
-        } catch (IOException e) {
-            System.err.println("Error handling disconnect: " + e.getMessage());
+            // Update stats if not guests
+            if (disconnectedPlayer != null && otherPlayer != null) {
+                if (disconnectedPlayer.getName() != null && !disconnectedPlayer.getName().startsWith("Guest") && 
+                    otherPlayer.getName() != null && !otherPlayer.getName().startsWith("Guest")) {
+                    
+                    try {
+                        // Record as a win for the player who stayed
+                        Database.UserDatabase.recordGameResult(
+                            otherPlayer.getName(), 
+                            disconnectedPlayer.getName()
+                        );
+                    } catch (Exception e) {
+                        System.err.println("Error updating stats for disconnect: " + e.getMessage());
+                    }
+                }
+            }
         }
+        
+        // Notify the other player
+        if (player == player1 && player2 != null) {
+            player2.sendMessage("OPPONENT_DISCONNECTED");
+            player2.endGame();
+        } else if (player == player2 && player1 != null) {
+            player1.sendMessage("OPPONENT_DISCONNECTED");
+            player1.endGame();
+        }
+        
+        // End the session
+        server.endGameSession(sessionId);
     }
     
     public void handleChat(playerHandler from, String message) {
-        try {
-            String chatMessage = "CHAT:" + from.getPlayerName() + ":" + message;
-            broadcast(chatMessage);
-        } catch (IOException e) {
-            System.err.println("Error sending chat: " + e.getMessage());
-        }
+        String chatMessage = "CHAT:" + from.getPlayerName() + ":" + message;
+        broadcast(chatMessage);
     }
     
-    private void broadcast(String message) throws IOException {
-        player1.sendMessage(message);
-        player2.sendMessage(message);
+    private void broadcast(String message) {
+        if (player1 != null) player1.sendMessage(message);
+        if (player2 != null) player2.sendMessage(message);
+    }
+    
+    public String getSessionId() {
+        return sessionId;
     }
 }

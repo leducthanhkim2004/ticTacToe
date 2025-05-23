@@ -1,3 +1,12 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "java.project.referencedLibraries": {
+        "include": [
+            "lib/**/*.jar",
+            "c:\\Users\\leduc\\Downloads\\mysql-connector-j-9.3.0\\mysql-connector-j-9.3.0\\mysql-connector-j-9.3.0.jar"
+        ],
+        "exclude": [
+            "lib/hamcrest-core-1.3.jar"
+        ]
+    }
 }

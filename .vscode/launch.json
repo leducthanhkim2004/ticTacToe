@@ -6,6 +6,34 @@
     "configurations": [
         {
             "type": "java",
+            "name": "App",
+            "request": "launch",
+            "mainClass": "comnet.demo/comnet.App",
+            "projectName": "demo"
+        },
+        {
+            "type": "java",
+            "name": "Server",
+            "request": "launch",
+            "mainClass": "comnet.demo/Online.Server",
+            "projectName": "demo"
+        },
+        {
+            "type": "java",
+            "name": "SimpleTest",
+            "request": "launch",
+            "mainClass": "comnet.demo/Database.SimpleTest",
+            "projectName": "demo"
+        },
+        {
+            "type": "java",
+            "name": "TestConnection",
+            "request": "launch",
+            "mainClass": "comnet.demo/Database.TestConnection",
+            "projectName": "demo"
+        },
+        {
+            "type": "java",
             "name": "Server",
             "request": "launch",
             "mainClass": "your.module.name/Online.Server",

@@ -2,175 +2,148 @@ package Online;
 
 import java.io.*;
 import java.net.Socket;
-import Model.*;
+import Model.Player;
 import Factory.GameFactory.GameType;
 
 public class playerHandler implements Runnable {
     private Socket socket;
     private DataInputStream in;
     private DataOutputStream out;
-    private Player player;
-    private gameSession currentSession;
-    private String playerName;
-    private GameType preferredGameType = GameType.STANDARD; // Default to 3x3
-    private boolean connected = true;
     private Server server;
+    private String playerName;
+    private Player player;
+    private gameSession currentGame;
+    private boolean inGame = false;
+    private GameType selectedGameType;
     
     public playerHandler(Socket socket, Server server) {
         this.socket = socket;
         this.server = server;
+        
+        // Initialize default player name (will be updated later)
+        this.playerName = "Player-" + socket.getInetAddress().getHostAddress();
+        
         try {
+            // Initialize streams
             this.in = new DataInputStream(socket.getInputStream());
             this.out = new DataOutputStream(socket.getOutputStream());
         } catch (IOException e) {
+            System.err.println("Error initializing streams: " + e.getMessage());
             e.printStackTrace();
-            connected = false;
         }
     }
     
     @Override
     public void run() {
         try {
-            // First message should be player registration
-            String registerMessage = in.readUTF();
-            handleRegistration(registerMessage);
-            
-            // Main message loop
-            while (connected) {
+            while (socket.isConnected()) {
+                // Read messages from client
                 String message = in.readUTF();
                 processMessage(message);
             }
         } catch (IOException e) {
-            System.out.println("Connection lost with player: " + (playerName != null ? playerName : "unknown"));
-        } finally {
-            handleDisconnect();
-        }
-    }
-    
-    private void handleRegistration(String message) throws IOException {
-        // Expected format: REGISTER:playerName[:gameType]
-        String[] parts = message.split(":");
-        if (parts[0].equals("REGISTER") && parts.length > 1) {
-            this.playerName = parts[1];
-            this.player = new Player(playerName, null); // Symbol will be assigned later
-            
-            // Check if game type is specified
-            if (parts.length > 2) {
-                try {
-                    preferredGameType = GameType.valueOf(parts[2]);
-                } catch (IllegalArgumentException e) {
-                    // Invalid game type, stick with default
-                }
+            System.out.println("Client disconnected: " + playerName);
+            // Clean up
+            if (inGame && currentGame != null) {
+                currentGame.handlePlayerDisconnect(this);
+            } else {
+                server.removeFromWaitingList(this);
             }
-            
-            sendMessage("CONNECTED:" + playerName);
-            
-            // Send game type options and wait for selection
-            sendMessage("GAME_TYPES:STANDARD,ULTIMATE");
-            
-            System.out.println("Player registered: " + playerName);
-        } else {
-            sendMessage("ERROR:Invalid registration");
-            socket.close();
-            connected = false;
+            closeConnection();
         }
     }
     
     private void processMessage(String message) {
-        try {
-            String[] parts = message.split(":");
-            String command = parts[0];
-            
-            switch (command) {
-                case "SELECT_GAME":
-                    if (parts.length > 1) {
-                        handleGameTypeSelection(parts[1]);
-                    }
-                    break;
-                case "MOVE":
-                    if (currentSession != null && parts.length >= 3) {
-                        int row = Integer.parseInt(parts[1]);
-                        int col = Integer.parseInt(parts[2]);
-                        currentSession.handleMove(this, row, col);
-                    }
-                    break;
-                case "CHAT":
-                    if (currentSession != null && parts.length >= 2) {
-                        currentSession.handleChat(this, parts[1]);
-                    }
-                    break;
-                case "QUIT":
-                    handleDisconnect();
-                    break;
-                default:
-                    sendMessage("ERROR:Unknown command");
+        System.out.println("Message from " + playerName + ": " + message);
+        
+        if (message.startsWith("REGISTER:")) {
+            // Handle player registration
+            String name = message.substring(9);
+            if (name != null && !name.trim().isEmpty()) {
+                this.playerName = name;
+                
+                // Create a Player object now that we have the name
+                this.player = new Player(name, null); // Symbol will be assigned later
+                
+                sendMessage("REGISTERED:" + playerName);
             }
-        } catch (Exception e) {
+        } else if (message.startsWith("SELECT_GAME:")) {
+            // Handle game type selection
+            String gameTypeStr = message.substring(12);
             try {
-                sendMessage("ERROR:Invalid message format");
-            } catch (IOException ex) {
-                connected = false;
+                GameType gameType = GameType.valueOf(gameTypeStr);
+                this.selectedGameType = gameType;
+                
+                // Add player to waiting list for selected game type
+                server.addToWaitingList(this, gameType);
+                sendMessage("WAITING:" + gameType);
+            } catch (IllegalArgumentException e) {
+                sendMessage("ERROR:Invalid game type");
             }
-        }
-    }
-    
-    private void handleGameTypeSelection(String gameTypeStr) throws IOException {
-        try {
-            GameType selectedType = GameType.valueOf(gameTypeStr);
-            this.preferredGameType = selectedType;
-            
-            sendMessage("GAME_SELECTED:" + gameTypeStr);
-            System.out.println(playerName + " selected game type: " + gameTypeStr);
-            
-            // Add to appropriate waiting list
-            server.addToWaitingList(this, preferredGameType);
-            
-        } catch (IllegalArgumentException e) {
-            sendMessage("ERROR:Invalid game type");
-        }
-    }
-    
-    public void sendMessage(String message) throws IOException {
-        if (out != null && connected) {
-            out.writeUTF(message);
-            out.flush();
-        }
-    }
-    
-    private void handleDisconnect() {
-        connected = false;
-        try {
-            if (currentSession != null) {
-                currentSession.handleDisconnect(this);
+        } else if (message.startsWith("MOVE:")) {
+            // Handle move during game
+            if (inGame && currentGame != null) {
+                currentGame.handleMove(this, message.substring(5));
+            } else {
+                sendMessage("ERROR:Not in game");
+            }
+        } else if (message.startsWith("CHAT:")) {
+            // Handle chat message
+            if (inGame && currentGame != null) {
+                currentGame.handleChat(this, message.substring(5));
+            }
+        } else if (message.equals("QUIT")) {
+            // Handle player quitting
+            if (inGame && currentGame != null) {
+                currentGame.handlePlayerDisconnect(this);
             } else {
                 server.removeFromWaitingList(this);
             }
-            
-            if (in != null) in.close();
-            if (out != null) out.close();
-            if (socket != null && !socket.isClosed()) socket.close();
-        } catch (IOException e) {
-            System.err.println("Error during disconnect: " + e.getMessage());
+            closeConnection();
         }
     }
     
-    public void setGameSession(gameSession session) {
-        this.currentSession = session;
+    public void setCurrentGame(gameSession game) {
+        this.currentGame = game;
+        this.inGame = true;
     }
     
-    public void setSymbol(Symbol symbol) {
-        this.player.setSymbol(symbol);
+    public void endGame() {
+        this.currentGame = null;
+        this.inGame = false;
     }
     
-    public Player getPlayer() {
-        return player;
+    public void sendMessage(String message) {
+        try {
+            if (out != null && socket != null && !socket.isClosed()) {
+                out.writeUTF(message);
+                out.flush();
+            }
+        } catch (IOException e) {
+            System.err.println("Error sending message to " + playerName + ": " + e.getMessage());
+            closeConnection();
+        }
     }
     
     public String getPlayerName() {
         return playerName;
     }
     
-    public GameType getPreferredGameType() {
-        return preferredGameType;
+    public Player getPlayer() {
+        return player;
+    }
+    
+    public GameType getSelectedGameType() {
+        return selectedGameType;
+    }
+    
+    private void closeConnection() {
+        try {
+            if (in != null) in.close();
+            if (out != null) out.close();
+            if (socket != null && !socket.isClosed()) socket.close();
+        } catch (IOException e) {
+            System.err.println("Error closing connection: " + e.getMessage());
+        }
     }
 }

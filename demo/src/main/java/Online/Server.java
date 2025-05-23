@@ -3,83 +3,145 @@ package Online;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import Database.UserDatabase;
 import Factory.GameFactory.GameType;
 
 public class Server {
     private static final int PORT = 1234;
-    private static final ExecutorService threadPool = Executors.newFixedThreadPool(20);
+    private ServerSocket serverSocket;
+    private boolean running = false;
+    private ExecutorService clientPool;
+    private ExecutorService gamePool;
     
-    // Separate queues for different game types
-    private final Map<GameType, Queue<playerHandler>> waitingLists = new ConcurrentHashMap<>();
-    private final Map<String, gameSession> activeSessions = new ConcurrentHashMap<>();
+    // Maps to track waiting players by game type
+    private Map<GameType, List<playerHandler>> waitingLists = new HashMap<>();
+    
+    // Map to track active game sessions
+    private Map<String, gameSession> activeSessions = new ConcurrentHashMap<>();
     
     public Server() {
-        // Initialize queues for each game type
-        waitingLists.put(GameType.STANDARD, new ConcurrentLinkedQueue<>());
-        waitingLists.put(GameType.ULTIMATE, new ConcurrentLinkedQueue<>());
+        // Initialize waiting lists for each game type
+        for (GameType type : GameType.values()) {
+            waitingLists.put(type, new ArrayList<>());
+        }
+        
+        // Initialize thread pools
+        clientPool = Executors.newCachedThreadPool();
+        gamePool = Executors.newCachedThreadPool();
     }
     
     public static void main(String[] args) {
-        new Server().start();
+        Server server = new Server();
+        server.start();
     }
     
     public void start() {
-        System.out.println("Server starting on port " + PORT);
-        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            System.out.println("Server started successfully!");
-            while (true) {
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("New client connected: " + clientSocket.getInetAddress());
-                
-                // Create and start a player handler thread
-                playerHandler player = new playerHandler(clientSocket, this);
-                threadPool.execute(player);
+        try {
+            // Test database connection
+            if (!UserDatabase.testConnection()) {
+                System.err.println("Warning: Could not connect to database. Player stats will not be saved.");
+            }
+            
+            serverSocket = new ServerSocket(PORT);
+            running = true;
+            System.out.println("Server started on port " + PORT);
+            
+            while (running) {
+                try {
+                    Socket clientSocket = serverSocket.accept();
+                    System.out.println("New connection from: " + clientSocket.getInetAddress().getHostAddress());
+                    
+                    // Create and start a new player handler
+                    playerHandler handler = new playerHandler(clientSocket, this);
+                    clientPool.execute(handler);
+                    
+                } catch (IOException e) {
+                    if (running) {
+                        System.err.println("Error accepting client connection: " + e.getMessage());
+                    }
+                }
             }
         } catch (IOException e) {
             System.err.println("Server error: " + e.getMessage());
-            e.printStackTrace();
         } finally {
-            threadPool.shutdown();
+            shutdown();
         }
     }
     
     public synchronized void addToWaitingList(playerHandler player, GameType gameType) {
-        Queue<playerHandler> waitingList = waitingLists.get(gameType);
-        waitingList.add(player);
-        System.out.println("Player added to " + gameType + " waiting list. Size: " + waitingList.size());
+        waitingLists.get(gameType).add(player);
+        System.out.println("Added " + player.getPlayerName() + " to waiting list for " + gameType);
+        
+        // Try to pair players
         pairPlayers(gameType);
     }
     
     public synchronized void removeFromWaitingList(playerHandler player) {
-        for (Queue<playerHandler> queue : waitingLists.values()) {
-            queue.remove(player);
+        for (List<playerHandler> list : waitingLists.values()) {
+            list.remove(player);
         }
     }
     
     private synchronized void pairPlayers(GameType gameType) {
-        Queue<playerHandler> waitingList = waitingLists.get(gameType);
+        List<playerHandler> waitingList = waitingLists.get(gameType);
         
-        // Need at least 2 players to make a match
         if (waitingList.size() >= 2) {
-            playerHandler player1 = waitingList.poll();
-            playerHandler player2 = waitingList.poll();
+            // Get the first two players in the list
+            playerHandler player1 = waitingList.remove(0);
+            playerHandler player2 = waitingList.remove(0);
             
-            // Create and start a game session
+            // Create a new game session
             String sessionId = UUID.randomUUID().toString();
             gameSession session = new gameSession(player1, player2, gameType, this);
+            
+            // Add to active sessions
             activeSessions.put(sessionId, session);
             
             // Start the game session in a new thread
-            threadPool.execute(session);
+            gamePool.execute(session);
             
-            System.out.println("New " + gameType + " game session created: " + sessionId);
+            System.out.println("Created new game session: " + sessionId + " for " + 
+                              player1.getPlayerName() + " and " + player2.getPlayerName());
         }
     }
     
     public void endGameSession(String sessionId) {
-        activeSessions.remove(sessionId);
-        System.out.println("Game session ended: " + sessionId);
+        gameSession session = activeSessions.remove(sessionId);
+        if (session != null) {
+            System.out.println("Ended game session: " + sessionId);
+        }
+    }
+    
+    public void shutdown() {
+        running = false;
+        
+        // Close server socket
+        try {
+            if (serverSocket != null && !serverSocket.isClosed()) {
+                serverSocket.close();
+            }
+        } catch (IOException e) {
+            System.err.println("Error closing server socket: " + e.getMessage());
+        }
+        
+        // Shutdown thread pools
+        if (clientPool != null) {
+            clientPool.shutdownNow();
+        }
+        
+        if (gamePool != null) {
+            gamePool.shutdownNow();
+        }
+        
+        System.out.println("Server shutdown complete");
     }
 }

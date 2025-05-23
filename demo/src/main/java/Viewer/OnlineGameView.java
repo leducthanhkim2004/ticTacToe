@@ -16,6 +16,7 @@ import Factory.GameFactory.GameType;
 import java.io.*;
 import java.net.Socket;
 import java.util.Random;
+import java.util.function.Consumer;
 
 public class OnlineGameView extends Application {
     private Socket socket;
@@ -33,6 +34,9 @@ public class OnlineGameView extends Application {
     private Stage primaryStage;
     private BorderPane root;
     private GridPane boardGrid;
+
+    private Player player;
+    private Consumer<Player.GameResult> gameOverCallback;
 
     @Override
     public void start(Stage primaryStage) {
@@ -179,8 +183,11 @@ root.setBackground(new Background(backgroundFill));
                 in = new DataInputStream(socket.getInputStream());
                 out = new DataOutputStream(socket.getOutputStream());
                 connected = true;
-                String playerName = "Player" + new Random().nextInt(1000);
+                
+                // Use the logged-in player's name or generate a random one
+                String playerName = (player != null) ? player.getName() : "Player" + new Random().nextInt(1000);
                 out.writeUTF("REGISTER:" + playerName);
+                
                 Platform.runLater(() -> statusLabel.setText("Connected as " + playerName + ". Select game type."));
                 listenForMessages();
             } catch (IOException e) {
@@ -349,12 +356,21 @@ root.setBackground(new Background(backgroundFill));
         switch (result) {
             case "WIN":
                 statusLabel.setText("Game over - You won!");
+                if (gameOverCallback != null && player != null) {
+                    gameOverCallback.accept(Player.GameResult.WIN);
+                }
                 break;
             case "LOSE":
                 statusLabel.setText("Game over - You lost");
+                if (gameOverCallback != null && player != null) {
+                    gameOverCallback.accept(Player.GameResult.LOSE);
+                }
                 break;
             case "DRAW":
                 statusLabel.setText("Game over - It's a draw!");
+                if (gameOverCallback != null && player != null) {
+                    gameOverCallback.accept(Player.GameResult.DRAW);
+                }
                 break;
             default:
                 statusLabel.setText("Game over");
@@ -382,6 +398,14 @@ root.setBackground(new Background(backgroundFill));
             root.setBottom(null);
             statusLabel.setText("Select a game type");
         });
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
+
+    public void setGameOverCallback(Consumer<Player.GameResult> callback) {
+        this.gameOverCallback = callback;
     }
 
     public static void main(String[] args) {
