@@ -11,13 +11,13 @@ import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.DialogPane;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.LinearGradient;
-import javafx.scene.paint.CycleMethod;
-import javafx.scene.paint.Stop;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 
 public class App extends Application {
@@ -31,118 +31,158 @@ public class App extends Application {
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
         
-        // Set a larger default stage size
-        primaryStage.setWidth(600);
-        primaryStage.setHeight(700);
+        // Set stage properties
+        primaryStage.setWidth(800);
+        primaryStage.setHeight(600);
+        primaryStage.setTitle("TicTacToe Game");
         
         // Launch the login/signup view
         try {
-            // Create a new instance of LoginView every time
             LoginView loginView = new LoginView();
             loginView.start(primaryStage);
         } catch (Exception e) {
             e.printStackTrace();
-            
-            // If login view fails to start, show the original main menu as fallback
             showMainMenu();
         }
     }
     
     private void showMainMenu() {
-        primaryStage.setTitle("Tic Tac Toe");
+        primaryStage.setTitle("TicTacToe Game");
 
-        // Create gradient background
-        Stop[] stops = new Stop[] {
-            new Stop(0, Color.web("#ffecd2")),
-            new Stop(1, Color.web("#fcb69f"))
-        };
-        LinearGradient gradient = new LinearGradient(0, 0, 1, 1, true, CycleMethod.NO_CYCLE, stops);
-        BackgroundFill backgroundFill = new BackgroundFill(gradient, CornerRadii.EMPTY, Insets.EMPTY);
+        // Create a simple background
+        BackgroundFill backgroundFill = new BackgroundFill(Color.LIGHTBLUE, CornerRadii.EMPTY, Insets.EMPTY);
         Background background = new Background(backgroundFill);
 
-        VBox root = new VBox(20);
-        root.setAlignment(Pos.CENTER);
-        root.setPadding(new Insets(50));
+        BorderPane root = new BorderPane();
         root.setBackground(background);
-
-        // Title
+        
+        // Add top panel with title
+        VBox topPanel = new VBox(15);
+        topPanel.setAlignment(Pos.CENTER);
+        topPanel.setPadding(new Insets(20, 10, 10, 10));
+        
         Label titleLabel = new Label("Tic Tac Toe");
-        titleLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 28));
-        titleLabel.setStyle("-fx-text-fill: #333333;");
-
-        // Add login button
-        Button loginButton = createStyledButton("Login / Register");
+        titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 36));
+        titleLabel.setTextFill(Color.DARKBLUE);
+        
+        Label subtitleLabel = new Label("Select a game mode to start playing");
+        subtitleLabel.setFont(Font.font("Arial", FontWeight.NORMAL, 16));
+        
+        topPanel.getChildren().addAll(titleLabel, subtitleLabel);
+        
+        // Main button panel
+        VBox centerPanel = new VBox(15);
+        centerPanel.setAlignment(Pos.CENTER);
+        centerPanel.setPadding(new Insets(20));
+        
+        // Login button
+        Button loginButton = createButton("Login / Register", Color.DARKBLUE, Color.WHITE);
         loginButton.setOnAction(e -> {
             try {
                 LoginView loginView = new LoginView();
-                loginView.start(new Stage());
-                primaryStage.close();
+                loginView.start(primaryStage);
             } catch (Exception ex) {
                 showError("Could not open login view: " + ex.getMessage());
             }
         });
-
-        // Existing buttons
-        Button localStandardButton = createStyledButton("Local Play - Standard (3x3)");
+        
+        // Game mode buttons
+        Button localStandardButton = createButton("Local Game - Standard (3×3)", Color.BLUE, Color.WHITE);
         localStandardButton.setOnAction(e -> startLocalGame(GameType.STANDARD));
-
-        Button localUltimateButton = createStyledButton("Local Play - Ultimate (9x9)");
+        
+        Button localUltimateButton = createButton("Local Game - Ultimate (9×9)", Color.BLUE, Color.WHITE);
         localUltimateButton.setOnAction(e -> startLocalGame(GameType.ULTIMATE));
-
-        Button onlineButton = createStyledButton("Online Play");
+        
+        Button onlineButton = createButton("Online Multiplayer", Color.BLUE, Color.WHITE);
         onlineButton.setOnAction(e -> {
-            // Inform user they need to login for online play
             showError("Please login first to access online play features.");
         });
-
-        Button exitButton = createStyledButton("Exit");
+        
+        // Exit button
+        Button exitButton = createButton("Exit Game", Color.RED, Color.WHITE);
         exitButton.setOnAction(e -> primaryStage.close());
-
-        root.getChildren().addAll(
-            titleLabel,
+        
+        centerPanel.getChildren().addAll(
             loginButton,
             localStandardButton,
             localUltimateButton,
             onlineButton,
             exitButton
         );
-
-        Scene scene = new Scene(root, 500, 400);
+        
+        // Bottom panel with version info
+        HBox bottomPanel = new HBox();
+        bottomPanel.setAlignment(Pos.CENTER_RIGHT);
+        bottomPanel.setPadding(new Insets(10));
+        
+        Label versionLabel = new Label("Version 1.0");
+        versionLabel.setFont(Font.font("Arial", 12));
+        versionLabel.setTextFill(Color.DARKBLUE);
+        
+        bottomPanel.getChildren().add(versionLabel);
+        
+        // Add all panels to the root
+        root.setTop(topPanel);
+        root.setCenter(centerPanel);
+        root.setBottom(bottomPanel);
+        
+        Scene scene = new Scene(root, 800, 600);
         primaryStage.setScene(scene);
         primaryStage.show();
     }
-
-    private Button createStyledButton(String text) {
+    
+    private Button createButton(String text, Color bgColor, Color textColor) {
         Button button = new Button(text);
-        button.setPrefWidth(250);
+        button.setPrefWidth(300);
+        button.setPrefHeight(50);
         button.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        button.setStyle("-fx-background-color: #90e0ef; -fx-text-fill: #03045e; -fx-background-radius: 10;");
-        button.setOnMouseEntered(e -> button.setStyle("-fx-background-color: #48cae4; -fx-text-fill: #03045e; -fx-background-radius: 10;"));
-        button.setOnMouseExited(e -> button.setStyle("-fx-background-color: #90e0ef; -fx-text-fill: #03045e; -fx-background-radius: 10;"));
+        
+        // Set colors directly
+        button.setStyle(
+            "-fx-background-color: " + toRgbCode(bgColor) + ";" +
+            "-fx-text-fill: " + toRgbCode(textColor) + ";" +
+            "-fx-padding: 10px;"
+        );
+        
+        // Simple shadow effect
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.gray(0.5));
+        shadow.setRadius(5);
+        shadow.setOffsetY(3);
+        button.setEffect(shadow);
+        
         return button;
+    }
+    
+    private String toRgbCode(Color color) {
+        return String.format("#%02X%02X%02X",
+            (int)(color.getRed() * 255),
+            (int)(color.getGreen() * 255),
+            (int)(color.getBlue() * 255));
     }
 
     private void startLocalGame(GameType gameType) {
         Stage gameStage = new Stage();
         GameView gameView = new GameView(gameType);
+        
+        // Set window title based on game type
+        gameStage.setTitle(gameType == GameType.STANDARD ? 
+            "Tic Tac Toe - Standard Game" : 
+            "Tic Tac Toe - Ultimate Game");
+        
         gameView.start(gameStage);
     }
 
-    private void startOnlineGame() {
-        try {
-            Stage onlineStage = new Stage();
-            OnlineGameView onlineView = new OnlineGameView();
-            onlineView.start(onlineStage);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-    
     private void showError(String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Information");
         alert.setHeaderText(null);
         alert.setContentText(message);
+        
+        // Simple alert styling
+        DialogPane dialogPane = alert.getDialogPane();
+        dialogPane.setStyle("-fx-background-color: white; -fx-font-size: 14px;");
+        
         alert.showAndWait();
     }
 }

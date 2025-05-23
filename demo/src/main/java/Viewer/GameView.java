@@ -18,6 +18,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
@@ -111,8 +112,9 @@ public class GameView extends Application {
         
         // Status label shows whose turn it is
         statusLabel = new Label(player1.getName() + "'s turn (" + player1.getSymbol() + ")");
-        statusLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 16));
-        statusLabel.setPadding(new Insets(10, 10, 10, 10));
+        statusLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 18));
+        statusLabel.setPadding(new Insets(15, 20, 15, 20));
+        statusLabel.getStyleClass().add("status-label");
 
         GridPane boardGrid = createBoardGrid();
 
@@ -145,11 +147,13 @@ public class GameView extends Application {
     
     private VBox createPlayerInfoBox(Player player) {
         Label nameLabel = new Label(player.getName());
-        nameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        nameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         
         Label symbolLabel = new Label("Symbol: " + player.getSymbol());
+        symbolLabel.setFont(Font.font("Arial", FontWeight.NORMAL, 14));
         
         Label scoreLabel = new Label("Score: " + player.getScore());
+        scoreLabel.setFont(Font.font("Arial", FontWeight.NORMAL, 14));
         
         // Store score labels to update them later
         if (player == player1) {
@@ -158,19 +162,31 @@ public class GameView extends Application {
             player2ScoreLabel = scoreLabel;
         }
         
-        VBox playerBox = new VBox(5);
+        VBox playerBox = new VBox(8);
         playerBox.setAlignment(Pos.CENTER);
+        playerBox.setPadding(new Insets(15));
         playerBox.getChildren().addAll(nameLabel, symbolLabel, scoreLabel);
         
-        // Style based on player symbol
-        String backgroundColor = (player.getSymbol() == Symbol.X) ? "#e6f0ff" : "#ffe6e6";
-        String textColor = (player.getSymbol() == Symbol.X) ? "#0077cc" : "#cc0000";
-        playerBox.setStyle("-fx-background-color: " + backgroundColor + "; " +
-                          "-fx-border-color: " + textColor + "; " +
-                          "-fx-border-radius: 5; " +
-                          "-fx-background-radius: 5; " +
-                          "-fx-padding: 10;");
+        // Add elevated card effect
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.color(0, 0, 0, 0.2));
+        shadow.setRadius(10);
+        shadow.setOffsetY(3);
+        playerBox.setEffect(shadow);
         
+        // Style based on player symbol
+        String backgroundColor = (player.getSymbol() == Symbol.X) ? "linear-gradient(to bottom right, #E0F2FE, #BAE6FD)" : "linear-gradient(to bottom right, #FEE2E2, #FECACA)";
+        String borderColor = (player.getSymbol() == Symbol.X) ? "#0284C7" : "#DC2626";
+        String textColor = (player.getSymbol() == Symbol.X) ? "#0C4A6E" : "#7F1D1D";
+        
+        playerBox.setStyle("-fx-background-color: " + backgroundColor + "; " +
+                          "-fx-border-color: " + borderColor + "; " +
+                          "-fx-border-radius: 15; " +
+                          "-fx-background-radius: 15; " +
+                          "-fx-border-width: 2px; " +
+                          "-fx-text-fill: " + textColor + ";");
+        
+        playerBox.getStyleClass().add("player-info-box");
         return playerBox;
     }
 
@@ -198,22 +214,34 @@ public class GameView extends Application {
     private GridPane createBoardGrid() {
         GridPane grid = new GridPane();
         grid.setAlignment(Pos.CENTER);
-        grid.setHgap(8);
-        grid.setVgap(8);
+        grid.setHgap(12);
+        grid.setVgap(12);
+        grid.setPadding(new Insets(20));
+        grid.getStyleClass().add("game-grid");
+        
+        // Add background glow to grid
+        DropShadow gridShadow = new DropShadow();
+        gridShadow.setColor(Color.color(0, 0, 0, 0.25));
+        gridShadow.setRadius(20);
+        gridShadow.setOffsetY(5);
+        grid.setEffect(gridShadow);
 
         buttons = new Button[boardSize][boardSize];
 
         for (int row = 0; row < boardSize; row++) {
             for (int col = 0; col < boardSize; col++) {
                 Button button = new Button();
-                button.setMinSize(50, 50);
-                button.setPrefSize(60, 60);
+                button.setMinSize(60, 60);
+                button.setPrefSize(80, 80);
                 if (gameType == GameType.STANDARD) {
-                    button.setPrefSize(100, 100);
+                    button.setPrefSize(120, 120);
                 }
-                button.setFont(Font.font("Arial", FontWeight.BOLD, 24));
-                button.setStyle("-fx-background-color: #ffffff; -fx-border-color: #cccccc; -fx-border-radius: 10; -fx-background-radius: 10;");
-
+                button.setFont(Font.font("Arial", FontWeight.BOLD, 36));
+                
+                // Add modern styling with animation
+                button.setStyle("-fx-background-color: white; -fx-border-color: #d4d4d8; -fx-border-radius: 15; -fx-background-radius: 15;");
+                button.getStyleClass().add("game-button");
+                
                 final int finalRow = row;
                 final int finalCol = col;
 
@@ -245,9 +273,9 @@ public class GameView extends Application {
                 if (symbol != null) {
                     buttons[row][col].setText(symbol.toString());
                     if (symbol == Symbol.X) {
-                        buttons[row][col].setStyle("-fx-text-fill: #0077cc; -fx-background-color: #e6f0ff; -fx-border-radius: 10; -fx-background-radius: 10;");
+                        buttons[row][col].setStyle("-fx-text-fill: #0284C7; -fx-background-color: #E0F2FE; -fx-border-radius: 15; -fx-background-radius: 15; -fx-border-color: #0284C7; -fx-border-width: 2px; -fx-font-size: 36px;");
                     } else {
-                        buttons[row][col].setStyle("-fx-text-fill: #cc0000; -fx-background-color: #ffe6e6; -fx-border-radius: 10; -fx-background-radius: 10;");
+                        buttons[row][col].setStyle("-fx-text-fill: #DC2626; -fx-background-color: #FEE2E2; -fx-border-radius: 15; -fx-background-radius: 15; -fx-border-color: #DC2626; -fx-border-width: 2px; -fx-font-size: 36px;");
                     }
                 }
             }
@@ -302,13 +330,49 @@ public class GameView extends Application {
     
     private void addPlayAgainButton() {
         Button playAgainButton = new Button("Play Again");
-        playAgainButton.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-size: 14px;");
-        playAgainButton.setPrefWidth(150);
+        playAgainButton.setStyle(
+            "-fx-background-color: #8B5CF6; " +
+            "-fx-text-fill: white; " +
+            "-fx-font-size: 16px; " +
+            "-fx-background-radius: 30; " +
+            "-fx-padding: 12px 24px;"
+        );
+        playAgainButton.setPrefWidth(200);
+        playAgainButton.setPrefHeight(50);
+        
+        // Add shadow effect
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.color(0, 0, 0, 0.3));
+        shadow.setRadius(10);
+        shadow.setOffsetY(5);
+        playAgainButton.setEffect(shadow);
+        
+        // Add hover effects
+        playAgainButton.setOnMouseEntered(e -> {
+            playAgainButton.setStyle(
+                "-fx-background-color: #7C3AED; " +
+                "-fx-text-fill: white; " +
+                "-fx-font-size: 16px; " +
+                "-fx-background-radius: 30; " +
+                "-fx-padding: 12px 24px;"
+            );
+        });
+        
+        playAgainButton.setOnMouseExited(e -> {
+            playAgainButton.setStyle(
+                "-fx-background-color: #8B5CF6; " +
+                "-fx-text-fill: white; " +
+                "-fx-font-size: 16px; " +
+                "-fx-background-radius: 30; " +
+                "-fx-padding: 12px 24px;"
+            );
+        });
+        
         playAgainButton.setOnAction(e -> restartGame());
         
         HBox buttonBox = new HBox(playAgainButton);
         buttonBox.setAlignment(Pos.CENTER);
-        buttonBox.setPadding(new Insets(15, 0, 0, 0));
+        buttonBox.setPadding(new Insets(25, 0, 10, 0));
         
         // Add the button to the scene
         VBox centerBox = (VBox) ((BorderPane) primaryStage.getScene().getRoot()).getCenter();

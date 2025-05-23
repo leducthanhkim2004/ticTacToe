@@ -6,7 +6,12 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.LinearGradient;
+import javafx.scene.paint.CycleMethod;
+import javafx.scene.paint.Stop;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
@@ -34,40 +39,58 @@ public class OnlineGameView extends Application {
     private Stage primaryStage;
     private BorderPane root;
     private GridPane boardGrid;
+    private VBox gameInfoPanel;
 
     private Player player;
     private Consumer<Player.GameResult> gameOverCallback;
+    private Label opponentLabel;
 
     @Override
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
 
+        // Create a modern gradient background
+        Stop[] stops = new Stop[] {
+            new Stop(0, Color.web("#1a237e", 0.2)),  // Deep indigo (faded)
+            new Stop(1, Color.web("#4a148c", 0.3))   // Deep purple (faded)
+        };
+        LinearGradient gradient = new LinearGradient(0, 0, 1, 1, true, CycleMethod.NO_CYCLE, stops);
+        BackgroundFill backgroundFill = new BackgroundFill(gradient, CornerRadii.EMPTY, Insets.EMPTY);
+        Background background = new Background(backgroundFill);
+
         root = new BorderPane();
-        BackgroundFill backgroundFill = new BackgroundFill(
-    new javafx.scene.paint.LinearGradient(
-        0, 0, 1, 1, true,
-        javafx.scene.paint.CycleMethod.NO_CYCLE,
-        new javafx.scene.paint.Stop(0, javafx.scene.paint.Color.web("#ffecd2")),
-        new javafx.scene.paint.Stop(1, javafx.scene.paint.Color.web("#fcb69f"))
-    ),
-    CornerRadii.EMPTY,
-    Insets.EMPTY
-);
-root.setBackground(new Background(backgroundFill));
+        root.setBackground(background);
 
-        VBox topBox = new VBox(10);
+        // Create a stylish header
+        VBox topBox = new VBox(15);
+        topBox.setAlignment(Pos.CENTER);
+        topBox.setPadding(new Insets(20, 20, 10, 20));
+        
+        Label headerLabel = new Label("Online Tic-Tac-Toe");
+        headerLabel.setFont(Font.font("Arial", FontWeight.BOLD, 28));
+        headerLabel.setStyle("-fx-text-fill: #303F9F;");
+        
         statusLabel = new Label("Connecting to server...");
-        statusLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 16));
-        statusLabel.setPadding(new Insets(10));
-        statusLabel.setStyle("-fx-background-color: linear-gradient(to right, #f6d365, #fda085); -fx-text-fill: #2e2e2e; -fx-border-color: #f7b733; -fx-border-width: 2px; -fx-border-radius: 10; -fx-background-radius: 10;");
-        topBox.getChildren().add(statusLabel);
+        statusLabel.setFont(Font.font("Arial", FontWeight.MEDIUM, 16));
+        statusLabel.setPadding(new Insets(10, 15, 10, 15));
+        statusLabel.setStyle("-fx-background-color: #E8EAF6; -fx-text-fill: #3F51B5; -fx-background-radius: 20px;");
+        
+        // Add shadow to status label
+        DropShadow statusShadow = new DropShadow();
+        statusShadow.setColor(Color.gray(0.5, 0.5));
+        statusShadow.setRadius(5);
+        statusShadow.setOffsetY(2);
+        statusLabel.setEffect(statusShadow);
+        
+        topBox.getChildren().addAll(headerLabel, statusLabel);
 
+        // Create game selection panel
         VBox gameSelectionBox = createGameSelectionPane();
 
         root.setTop(topBox);
         root.setCenter(gameSelectionBox);
 
-        Scene scene = new Scene(root, 700, 600);
+        Scene scene = new Scene(root, 800, 700);
         primaryStage.setTitle("Online Tic Tac Toe");
         primaryStage.setScene(scene);
         primaryStage.show();
@@ -78,52 +101,145 @@ root.setBackground(new Background(backgroundFill));
     }
 
     private VBox createGameSelectionPane() {
-        VBox selectionBox = new VBox(20);
+        VBox selectionBox = new VBox(25);
         selectionBox.setAlignment(Pos.CENTER);
-        selectionBox.setPadding(new Insets(50));
+        selectionBox.setPadding(new Insets(30, 50, 50, 50));
 
         Label titleLabel = new Label("Select Game Type");
-        titleLabel.setFont(Font.font("Verdana", FontWeight.BOLD, 20));
-        titleLabel.setStyle("-fx-text-fill: #333333;");
+        titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        titleLabel.setStyle("-fx-text-fill: #303F9F;");
+        
+        // Player information
+        HBox playerInfoBox = new HBox(20);
+        playerInfoBox.setAlignment(Pos.CENTER);
+        playerInfoBox.setPadding(new Insets(15));
+        playerInfoBox.setStyle("-fx-background-color: rgba(255,255,255,0.7); -fx-background-radius: 10px;");
+        
+        Label playerNameLabel = new Label("Playing as: " + (player != null ? player.getName() : "Guest"));
+        playerNameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        playerNameLabel.setStyle("-fx-text-fill: #303F9F;");
+        
+        playerInfoBox.getChildren().add(playerNameLabel);
 
-        Button standardButton = new Button("Standard Tic Tac Toe (3x3)");
-        styleGameButton(standardButton);
+        // Game type buttons with enhanced styling
+        Button standardButton = new Button("Standard Tic Tac Toe (3×3)");
+        styleGameButton(standardButton, Color.web("#3F51B5"));
         standardButton.setOnAction(e -> selectGameType(GameType.STANDARD));
 
-        Button ultimateButton = new Button("Ultimate Tic Tac Toe (9x9)");
-        styleGameButton(ultimateButton);
+        Button ultimateButton = new Button("Ultimate Tic Tac Toe (9×9)");
+        styleGameButton(ultimateButton, Color.web("#673AB7"));
         ultimateButton.setOnAction(e -> selectGameType(GameType.ULTIMATE));
+        
+        // Add exit button
+        Button exitButton = new Button("Back to Main Menu");
+        exitButton.setPrefWidth(300);
+        exitButton.setPrefHeight(45);
+        exitButton.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        exitButton.setStyle("-fx-background-color: #F44336; -fx-text-fill: white; -fx-background-radius: 8;");
+        
+        // Add shadow effect
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.color(0, 0, 0, 0.4));
+        shadow.setRadius(8);
+        shadow.setOffsetY(3);
+        exitButton.setEffect(shadow);
+        
+        exitButton.setOnAction(e -> {
+            disconnect();
+            primaryStage.close();
+        });
 
-        selectionBox.getChildren().addAll(titleLabel, standardButton, ultimateButton);
+        VBox.setMargin(playerInfoBox, new Insets(0, 0, 20, 0));
+        VBox.setMargin(exitButton, new Insets(30, 0, 0, 0));
+        
+        selectionBox.getChildren().addAll(titleLabel, playerInfoBox, standardButton, ultimateButton, exitButton);
         return selectionBox;
     }
 
-    private void styleGameButton(Button button) {
-        button.setPrefWidth(250);
-        button.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        button.setStyle("-fx-background-color: #90e0ef; -fx-text-fill: #03045e; -fx-background-radius: 10;");
-        button.setOnMouseEntered(e -> button.setStyle("-fx-background-color: #48cae4; -fx-text-fill: #03045e; -fx-background-radius: 10;"));
-        button.setOnMouseExited(e -> button.setStyle("-fx-background-color: #90e0ef; -fx-text-fill: #03045e; -fx-background-radius: 10;"));
+    private void styleGameButton(Button button, Color baseColor) {
+        button.setPrefWidth(350);
+        button.setPrefHeight(60);
+        button.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        
+        // Convert Color to hex string
+        String colorHex = String.format("#%02X%02X%02X",
+            (int)(baseColor.getRed() * 255),
+            (int)(baseColor.getGreen() * 255),
+            (int)(baseColor.getBlue() * 255));
+        
+        button.setStyle(
+            "-fx-background-color: " + colorHex + ";" + 
+            "-fx-text-fill: white;" + 
+            "-fx-background-radius: 8px;"
+        );
+        
+        // Add shadow effect
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.color(0, 0, 0, 0.4));
+        shadow.setRadius(8);
+        shadow.setOffsetY(3);
+        button.setEffect(shadow);
+        
+        // Add hover effects
+        button.setOnMouseEntered(e -> {
+            button.setStyle(
+                "-fx-background-color: derive(" + colorHex + ", -10%);" + 
+                "-fx-text-fill: white;" + 
+                "-fx-background-radius: 8px;"
+            );
+        });
+        
+        button.setOnMouseExited(e -> {
+            button.setStyle(
+                "-fx-background-color: " + colorHex + ";" + 
+                "-fx-text-fill: white;" + 
+                "-fx-background-radius: 8px;"
+            );
+        });
     }
 
     private GridPane createGameBoard(int size) {
         boardGrid = new GridPane();
         boardGrid.setAlignment(Pos.CENTER);
-        boardGrid.setHgap(5);
-        boardGrid.setVgap(5);
+        boardGrid.setHgap(8);
+        boardGrid.setVgap(8);
+        boardGrid.setPadding(new Insets(15));
+        boardGrid.setStyle("-fx-background-color: rgba(255,255,255,0.8); -fx-background-radius: 10px;");
+
+        // Add shadow to the game board
+        DropShadow boardShadow = new DropShadow();
+        boardShadow.setColor(Color.color(0, 0, 0, 0.5));
+        boardShadow.setRadius(10);
+        boardShadow.setOffsetY(4);
+        boardGrid.setEffect(boardShadow);
 
         buttons = new Button[size][size];
-        int buttonSize = size == 3 ? 100 : 60;
+        int buttonSize = size == 3 ? 90 : 55;
 
         for (int row = 0; row < size; row++) {
             for (int col = 0; col < size; col++) {
                 Button button = new Button();
                 button.setPrefSize(buttonSize, buttonSize);
-                button.setFont(Font.font("Arial", FontWeight.BOLD, 18));
-                button.setStyle("-fx-background-color: #caf0f8;");
+                button.setFont(Font.font("Arial", FontWeight.BOLD, size == 3 ? 36 : 24));
+                button.setStyle("-fx-background-color: #E8EAF6; -fx-background-radius: 5px; -fx-border-color: #C5CAE9; -fx-border-radius: 5px; -fx-border-width: 1px;");
+                
                 final int r = row;
                 final int c = col;
                 button.setOnAction(e -> handleButtonClick(r, c));
+                
+                // Add hover effect
+                button.setOnMouseEntered(e -> {
+                    if (isMyTurn && (button.getText() == null || button.getText().isEmpty())) {
+                        button.setStyle("-fx-background-color: #D1C4E9; -fx-background-radius: 5px; -fx-border-color: #B39DDB; -fx-border-radius: 5px; -fx-border-width: 1px;");
+                    }
+                });
+                
+                button.setOnMouseExited(e -> {
+                    if (button.getText() == null || button.getText().isEmpty()) {
+                        button.setStyle("-fx-background-color: #E8EAF6; -fx-background-radius: 5px; -fx-border-color: #C5CAE9; -fx-border-radius: 5px; -fx-border-width: 1px;");
+                    }
+                });
+                
                 buttons[row][col] = button;
                 boardGrid.add(button, col, row);
             }
@@ -147,28 +263,7 @@ root.setBackground(new Background(backgroundFill));
     private void setupGameInterface() {
         GridPane boardGrid = createGameBoard(boardSize);
 
-        VBox chatBox = new VBox(10);
-        chatBox.setPadding(new Insets(10));
-        chatBox.setPrefWidth(200);
-        chatBox.setStyle("-fx-background-color: #edf6f9; -fx-border-color: #90e0ef; -fx-border-radius: 5;");
-
-        Label chatLabel = new Label("Chat");
-        chatLabel.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        chatLabel.setStyle("-fx-text-fill: #023e8a;");
-
-        chatArea = new TextArea();
-        chatArea.setEditable(false);
-        chatArea.setPrefHeight(300);
-
-        HBox chatInputBox = new HBox(5);
-        chatField = new TextField();
-        chatField.setPrefWidth(150);
-        Button sendButton = new Button("Send");
-        sendButton.setStyle("-fx-background-color: #48cae4; -fx-text-fill: white;");
-        sendButton.setOnAction(e -> sendChat());
-        chatInputBox.getChildren().addAll(chatField, sendButton);
-
-        chatBox.getChildren().addAll(chatLabel, chatArea, chatInputBox);
+        VBox chatBox = createChatPanel();
 
         Platform.runLater(() -> {
             root.setCenter(boardGrid);
@@ -247,7 +342,17 @@ root.setBackground(new Background(backgroundFill));
                     break;
                 case "CHAT":
                     if (parts.length >= 3) {
-                        chatArea.appendText(parts[1] + ": " + parts[2] + "\n");
+                        String sender = parts[1];
+        
+                        // Reassemble message in case it contained colons
+                        StringBuilder messageContent = new StringBuilder();
+                        for (int i = 2; i < parts.length; i++) {
+                            messageContent.append(parts[i]);
+                            if (i < parts.length - 1) messageContent.append(":");
+                        }
+        
+                        // Display with formatting
+                        displayChatMessage(sender, messageContent.toString(), false);
                     }
                     break;
                 case "ERROR":
@@ -315,15 +420,164 @@ root.setBackground(new Background(backgroundFill));
         }
     }
 
+    private VBox createChatPanel() {
+        VBox chatPanel = new VBox(10);
+        chatPanel.setPadding(new Insets(15));
+        chatPanel.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-background-radius: 10px;" +
+            "-fx-border-color: #C5CAE9;" +
+            "-fx-border-radius: 10px;" +
+            "-fx-border-width: 1px;"
+        );
+        
+        // Header with icon
+        HBox chatHeader = new HBox(10);
+        chatHeader.setAlignment(Pos.CENTER_LEFT);
+        
+        Label chatIconLabel = new Label("💬");
+        chatIconLabel.setFont(Font.font("Arial", 18));
+        
+        Label chatTitle = new Label("Chat");
+        chatTitle.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        chatTitle.setStyle("-fx-text-fill: #303F9F;");
+        
+        chatHeader.getChildren().addAll(chatIconLabel, chatTitle);
+        
+        // Chat area with better styling
+        chatArea = new TextArea();
+        chatArea.setEditable(false);
+        chatArea.setPrefHeight(250);
+        chatArea.setWrapText(true);
+        chatArea.setFont(Font.font("Arial", 15));
+        chatArea.setStyle(
+            "-fx-control-inner-background: #F5F5F5;" +
+            "-fx-background-radius: 8px;" +
+            "-fx-border-radius: 8px;" +
+            "-fx-border-color: #E0E0E0;" +
+            "-fx-padding: 8px;" +
+            "-fx-font-size: 15px;"
+        );
+        
+        // Auto-scroll to bottom when new messages arrive
+        chatArea.textProperty().addListener((observable, oldValue, newValue) -> {
+            chatArea.setScrollTop(Double.MAX_VALUE);
+        });
+        
+        // Input area with button
+        HBox inputBox = new HBox(8);
+        inputBox.setAlignment(Pos.CENTER);
+        
+        chatField = new TextField();
+        chatField.setPrefHeight(40);
+        chatField.setFont(Font.font("Arial", 15));
+        chatField.setPromptText("Type a message...");
+        chatField.setStyle(
+            "-fx-background-radius: 20px;" +
+            "-fx-border-radius: 20px;" +
+            "-fx-border-color: #C5CAE9;" +
+            "-fx-padding: 8px 15px 8px 15px;" +
+            "-fx-font-size: 15px;"
+        );
+        
+        // Make chat field expand to fill available space
+        HBox.setHgrow(chatField, Priority.ALWAYS);
+        
+        Button sendButton = new Button("Send");
+        sendButton.setPrefHeight(40);
+        sendButton.setPrefWidth(80);
+        sendButton.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        sendButton.setStyle(
+            "-fx-background-color: #3F51B5;" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 20px;" +
+            "-fx-cursor: hand;"
+        );
+        
+        // Add hover effect to button
+        sendButton.setOnMouseEntered(e -> 
+            sendButton.setStyle(
+                "-fx-background-color: #303F9F;" +
+                "-fx-text-fill: white;" +
+                "-fx-background-radius: 20px;" +
+                "-fx-cursor: hand;"
+            )
+        );
+        
+        sendButton.setOnMouseExited(e -> 
+            sendButton.setStyle(
+                "-fx-background-color: #3F51B5;" +
+                "-fx-text-fill: white;" +
+                "-fx-background-radius: 20px;" +
+                "-fx-cursor: hand;"
+            )
+        );
+        
+        // Add action handlers
+        chatField.setOnAction(e -> sendChat());
+        sendButton.setOnAction(e -> sendChat());
+        
+        inputBox.getChildren().addAll(chatField, sendButton);
+        
+        // Add everything to the chat panel
+        chatPanel.getChildren().addAll(chatHeader, chatArea, inputBox);
+        
+        return chatPanel;
+    }
+
+    // Improved method to display chat messages with formatting
+    private void displayChatMessage(String sender, String message, boolean isCurrentUser) {
+        Platform.runLater(() -> {
+            String timestamp = java.time.LocalTime.now().format(
+                java.time.format.DateTimeFormatter.ofPattern("HH:mm"));
+            
+            StringBuilder formattedMsg = new StringBuilder();
+            
+            if (isCurrentUser) {
+                formattedMsg.append("[").append(timestamp).append("] ");
+                formattedMsg.append("You: ");
+                formattedMsg.append(message).append("\n");
+                
+                // Use custom styling for your messages
+                chatArea.setStyle(
+                    "-fx-control-inner-background: #F5F5F5;" +
+                    "-fx-background-radius: 8px;" +
+                    "-fx-border-radius: 8px;" +
+                    "-fx-border-color: #E0E0E0;" +
+                    "-fx-padding: 8px;" +
+                    "-fx-font-size: 15px;" +
+                    "-fx-highlight-fill: #E8EAF6;" + 
+                    "-fx-highlight-text-fill: #3F51B5;"
+                );
+            } else {
+                formattedMsg.append("[").append(timestamp).append("] ");
+                formattedMsg.append(sender).append(": ");
+                formattedMsg.append(message).append("\n");
+            }
+            
+            chatArea.appendText(formattedMsg.toString());
+        });
+    }
+
+    // Improved send chat method
     private void sendChat() {
-        if (connected && !chatField.getText().trim().isEmpty()) {
+        if (connected && chatField.getText() != null && !chatField.getText().trim().isEmpty()) {
             try {
                 String message = chatField.getText().trim();
                 out.writeUTF("CHAT:" + message);
+                
+                // Display in chat area with formatting
+                displayChatMessage("You", message, true);
+                
+                // Clear input field
                 chatField.clear();
-                chatArea.appendText("Me: " + message + "\n");
+                
+                // Give focus back to chat field
+                chatField.requestFocus();
+                
             } catch (IOException e) {
                 statusLabel.setText("Error sending chat: " + e.getMessage());
+                statusLabel.setStyle("-fx-background-color: #FFEBEE; -fx-text-fill: #C62828; -fx-background-radius: 20px;");
             }
         }
     }

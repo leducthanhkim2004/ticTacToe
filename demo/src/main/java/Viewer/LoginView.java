@@ -12,6 +12,7 @@ import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -26,7 +27,7 @@ public class LoginView extends Application {
     private BorderPane mainLayout;
     private VBox loginPanel;
     private VBox registerPanel;
-    private VBox gameSelectionPanel;
+    private BorderPane gameSelectionPanel;
     private VBox leaderboardPanel;
     
     @Override
@@ -67,36 +68,81 @@ public class LoginView extends Application {
     }
     
     private void createLoginPanel() {
-        loginPanel = new VBox(15);
-        loginPanel.setPadding(new Insets(30));
+        loginPanel = new VBox(20);  // Increased spacing
+        loginPanel.setPadding(new Insets(40));  // More padding
         loginPanel.setAlignment(Pos.CENTER);
-        loginPanel.setMaxWidth(400);
+        loginPanel.setMaxWidth(450);  // Wider panel
         
+        // Apply a nice background
+        loginPanel.setStyle("-fx-background-color: #e6f7ff; -fx-background-radius: 15;");
+        
+        // Add drop shadow for depth
+        DropShadow panelShadow = new DropShadow();
+        panelShadow.setColor(Color.gray(0.4));
+        panelShadow.setRadius(15);
+        panelShadow.setOffsetY(5);
+        loginPanel.setEffect(panelShadow);
+        
+        // Larger header
         Label headerLabel = new Label("Sign In");
-        headerLabel.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        headerLabel.setFont(Font.font("Arial", FontWeight.BOLD, 32));  // Larger font
+        headerLabel.setTextFill(Color.DARKBLUE);
         
+        // Username field with larger font
         Label usernameLabel = new Label("Username:");
+        usernameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         TextField usernameField = new TextField();
         usernameField.setPromptText("Enter your username");
-        usernameField.setMaxWidth(300);
+        usernameField.setMaxWidth(350);
+        usernameField.setPrefHeight(40);  // Taller field
+        usernameField.setFont(Font.font("Arial", 14));  // Larger text
         
+        // Password field with larger font
         Label passwordLabel = new Label("Password:");
+        passwordLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Enter your password");
-        passwordField.setMaxWidth(300);
+        passwordField.setMaxWidth(350);
+        passwordField.setPrefHeight(40);  // Taller field
+        passwordField.setFont(Font.font("Arial", 14));  // Larger text
         
+        // Attractive login button
         Button loginButton = new Button("Login");
-        loginButton.setPrefWidth(300);
-        loginButton.setStyle("-fx-background-color: #0077B6; -fx-text-fill: white;");
+        loginButton.setPrefWidth(350);
+        loginButton.setPrefHeight(50);  // Taller button
+        loginButton.setFont(Font.font("Arial", FontWeight.BOLD, 16));  // Larger text
         
+        // Blue button with white text
+        loginButton.setStyle("-fx-background-color: #007bff; -fx-text-fill: white; -fx-background-radius: 8;");
+        
+        // Drop shadow for button
+        DropShadow buttonShadow = new DropShadow();
+        buttonShadow.setColor(Color.gray(0.5));
+        buttonShadow.setRadius(5);
+        buttonShadow.setOffsetY(3);
+        loginButton.setEffect(buttonShadow);
+        
+        // Guest button with different styling
         Button guestButton = new Button("Play as Guest");
-        guestButton.setPrefWidth(300);
-        guestButton.setStyle("-fx-background-color: #90E0EF; -fx-text-fill: #03045E;");
+        guestButton.setPrefWidth(350);
+        guestButton.setPrefHeight(50);
+        guestButton.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        guestButton.setStyle("-fx-background-color: #6c757d; -fx-text-fill: white; -fx-background-radius: 8;");
+        guestButton.setEffect(buttonShadow);
         
+        // More visible hyperlink
         Hyperlink registerLink = new Hyperlink("Don't have an account? Sign up");
+        registerLink.setFont(Font.font("Arial", 16));
+        registerLink.setTextFill(Color.BLUE);
         
+        // Error message with larger font
         Label errorLabel = new Label();
         errorLabel.setTextFill(Color.RED);
+        errorLabel.setFont(Font.font("Arial", 14));
+        
+        // More spacing between elements
+        VBox.setMargin(loginButton, new Insets(20, 0, 5, 0));
+        VBox.setMargin(guestButton, new Insets(5, 0, 15, 0));
         
         // Handle login button click
         loginButton.setOnAction(e -> {
@@ -162,37 +208,78 @@ public class LoginView extends Application {
     }
     
     private void createRegisterPanel() {
-        registerPanel = new VBox(15);
-        registerPanel.setPadding(new Insets(30));
+        registerPanel = new VBox(20);  // Increased spacing
+        registerPanel.setPadding(new Insets(40));
         registerPanel.setAlignment(Pos.CENTER);
-        registerPanel.setMaxWidth(400);
+        registerPanel.setMaxWidth(450);  // Wider panel
         
+        // Apply a nice background
+        registerPanel.setStyle("-fx-background-color: #e6f7ff; -fx-background-radius: 15;");
+        
+        // Add drop shadow for depth
+        DropShadow panelShadow = new DropShadow();
+        panelShadow.setColor(Color.gray(0.4));
+        panelShadow.setRadius(15);
+        panelShadow.setOffsetY(5);
+        registerPanel.setEffect(panelShadow);
+        
+        // Larger header
         Label headerLabel = new Label("Create Account");
-        headerLabel.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        headerLabel.setFont(Font.font("Arial", FontWeight.BOLD, 32));
+        headerLabel.setTextFill(Color.DARKBLUE);
         
+        // Username field with larger font
         Label usernameLabel = new Label("Username:");
+        usernameLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         TextField usernameField = new TextField();
         usernameField.setPromptText("Choose a username");
-        usernameField.setMaxWidth(300);
+        usernameField.setMaxWidth(350);
+        usernameField.setPrefHeight(40);
+        usernameField.setFont(Font.font("Arial", 14));
         
+        // Password fields with larger font
         Label passwordLabel = new Label("Password:");
+        passwordLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         PasswordField passwordField = new PasswordField();
         passwordField.setPromptText("Choose a password");
-        passwordField.setMaxWidth(300);
+        passwordField.setMaxWidth(350);
+        passwordField.setPrefHeight(40);
+        passwordField.setFont(Font.font("Arial", 14));
         
         Label confirmPasswordLabel = new Label("Confirm Password:");
+        confirmPasswordLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         PasswordField confirmPasswordField = new PasswordField();
         confirmPasswordField.setPromptText("Confirm your password");
-        confirmPasswordField.setMaxWidth(300);
+        confirmPasswordField.setMaxWidth(350);
+        confirmPasswordField.setPrefHeight(40);
+        confirmPasswordField.setFont(Font.font("Arial", 14));
         
+        // Create account button
         Button registerButton = new Button("Create Account");
-        registerButton.setPrefWidth(300);
-        registerButton.setStyle("-fx-background-color: #0077B6; -fx-text-fill: white;");
+        registerButton.setPrefWidth(350);
+        registerButton.setPrefHeight(50);
+        registerButton.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        registerButton.setStyle("-fx-background-color: #28a745; -fx-text-fill: white; -fx-background-radius: 8;");
         
+        // Drop shadow for button
+        DropShadow buttonShadow = new DropShadow();
+        buttonShadow.setColor(Color.gray(0.5));
+        buttonShadow.setRadius(5);
+        buttonShadow.setOffsetY(3);
+        registerButton.setEffect(buttonShadow);
+        
+        // More visible hyperlink
         Hyperlink loginLink = new Hyperlink("Already have an account? Sign in");
+        loginLink.setFont(Font.font("Arial", 16));
+        loginLink.setTextFill(Color.BLUE);
         
+        // Error message with larger font
         Label errorLabel = new Label();
         errorLabel.setTextFill(Color.RED);
+        errorLabel.setFont(Font.font("Arial", 14));
+        
+        // More spacing between elements
+        VBox.setMargin(registerButton, new Insets(15, 0, 10, 0));
         
         // Handle register button click
         registerButton.setOnAction(e -> {
@@ -262,71 +349,140 @@ public class LoginView extends Application {
     }
     
     private void createGameSelectionPanel() {
-        gameSelectionPanel = new VBox(20);
-        gameSelectionPanel.setPadding(new Insets(30));
-        gameSelectionPanel.setAlignment(Pos.CENTER);
+        gameSelectionPanel = new BorderPane();
         
-        String welcomeText = loggedInPlayer.getName().equals("Guest") ? 
-            "Playing as Guest" : 
-            "Welcome, " + loggedInPlayer.getName();
+        // Apply a nice background with gradient
+        gameSelectionPanel.setStyle("-fx-background-color: linear-gradient(to bottom, #e6f7ff, #cce5ff);");
         
-        Label welcomeLabel = new Label(welcomeText);
-        welcomeLabel.setFont(Font.font("Arial", FontWeight.BOLD, 20));
+        // Top section with user info and logout
+        HBox topBar = new HBox();
+        topBar.setPadding(new Insets(20, 30, 10, 30));
+        topBar.setAlignment(Pos.CENTER_RIGHT);
         
-        if (!loggedInPlayer.getName().equals("Guest")) {
-            // Show player stats
-            Label statsLabel = new Label(String.format(
-                "Score: %d | Wins: %d | Losses: %d | Draws: %d",
-                loggedInPlayer.getScore(),
-                loggedInPlayer.getGame_Win(),
-                loggedInPlayer.getGame_Lose(),
-                loggedInPlayer.getGame_Draw()
-            ));
-            statsLabel.setFont(Font.font("Arial", FontWeight.NORMAL, 14));
-            gameSelectionPanel.getChildren().addAll(welcomeLabel, statsLabel);
-        } else {
-            gameSelectionPanel.getChildren().add(welcomeLabel);
-        }
+        // Show logged in user information
+        Label userLabel = new Label("Logged in as: " + loggedInPlayer.getName());
+        userLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        userLabel.setTextFill(Color.DARKBLUE);
         
-        Label offlineLabel = new Label("Offline Play");
-        offlineLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        // Spacer to push elements apart
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
         
-        Button standardButton = createGameButton("Standard Tic Tac Toe (3x3)", "#90E0EF");
-        standardButton.setOnAction(e -> startLocalGame(GameType.STANDARD));
-        
-        Button ultimateButton = createGameButton("Ultimate Tic Tac Toe (9x9)", "#90E0EF");
-        ultimateButton.setOnAction(e -> startLocalGame(GameType.ULTIMATE));
-        
-        Label onlineLabel = new Label("Online Play");
-        onlineLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        onlineLabel.setPadding(new Insets(10, 0, 0, 0));
-        
-        Button onlineButton = createGameButton("Play Online", "#48CAE4");
-        onlineButton.setOnAction(e -> startOnlineGame());
-        
-        Button leaderboardButton = createGameButton("View Leaderboard", "#ADE8F4");
-        leaderboardButton.setOnAction(e -> showLeaderboard());
-        
+        // Logout button
         Button logoutButton = new Button("Logout");
-        logoutButton.setPrefWidth(300);
-        logoutButton.setStyle("-fx-background-color: #DDDDDD;");
+        logoutButton.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        logoutButton.setStyle("-fx-background-color: #dc3545; -fx-text-fill: white; -fx-background-radius: 5;");
         logoutButton.setOnAction(e -> logout());
         
-        gameSelectionPanel.getChildren().addAll(
-            offlineLabel,
-            standardButton,
-            ultimateButton,
-            onlineLabel,
-            onlineButton,
-            leaderboardButton,
-            logoutButton
+        topBar.getChildren().addAll(userLabel, spacer, logoutButton);
+        
+        // Center section with title and game options
+        VBox centerContent = new VBox(25);
+        centerContent.setAlignment(Pos.CENTER);
+        centerContent.setPadding(new Insets(20, 30, 40, 30));
+        
+        // Game selection title
+        Label titleLabel = new Label("Select Game Mode");
+        titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 36));
+        titleLabel.setTextFill(Color.DARKBLUE);
+        
+        // Game buttons container
+        VBox gameButtons = new VBox(18);
+        gameButtons.setAlignment(Pos.CENTER);
+        gameButtons.setPadding(new Insets(20, 0, 20, 0));
+        
+        // Standard game button
+        Button standardGameButton = createGameButton("Standard Tic Tac Toe (3×3)", Color.web("#007bff"));
+        standardGameButton.setOnAction(e -> startLocalGame(GameType.STANDARD));
+        
+        // Ultimate game button
+        Button ultimateGameButton = createGameButton("Ultimate Tic Tac Toe (9×9)", Color.web("#17a2b8"));
+        ultimateGameButton.setOnAction(e -> startLocalGame(GameType.ULTIMATE));
+        
+        // Online game button
+        Button onlineGameButton = createGameButton("Online Multiplayer", Color.web("#28a745"));
+        onlineGameButton.setOnAction(e -> startOnlineGame());
+        
+        // Stats button
+        Button statsButton = createGameButton("View Leaderboard", Color.web("#6f42c1"));
+        statsButton.setOnAction(e -> showLeaderboard());
+        
+        // Add all game buttons
+        gameButtons.getChildren().addAll(
+            standardGameButton,
+            ultimateGameButton,
+            onlineGameButton,
+            statsButton
         );
+        
+        // Add everything to the center content
+        centerContent.getChildren().addAll(titleLabel, gameButtons);
+        
+        // Status bar at bottom
+        HBox statusBar = new HBox();
+        statusBar.setPadding(new Insets(10, 20, 10, 20));
+        statusBar.setStyle("-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-width: 1 0 0 0;");
+        
+        // Player stats
+        Label statsLabel = new Label(String.format("Wins: %d | Losses: %d | Draws: %d | Score: %d", 
+            loggedInPlayer.getGame_Win(), 
+            loggedInPlayer.getGame_Lose(), 
+            loggedInPlayer.getGame_Draw(),
+            loggedInPlayer.getScore()));
+        statsLabel.setFont(Font.font("Arial", 14));
+        statsLabel.setTextFill(Color.GRAY);
+        
+        statusBar.getChildren().add(statsLabel);
+        
+        // Add all sections to the main panel
+        gameSelectionPanel.setTop(topBar);
+        gameSelectionPanel.setCenter(centerContent);
+        gameSelectionPanel.setBottom(statusBar);
     }
     
-    private Button createGameButton(String text, String color) {
+    // Helper method to create consistently styled game buttons
+    private Button createGameButton(String text, Color color) {
         Button button = new Button(text);
-        button.setPrefWidth(300);
-        button.setStyle("-fx-background-color: " + color + "; -fx-text-fill: #03045E;");
+        button.setPrefWidth(400);
+        button.setPrefHeight(60);
+        button.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        
+        // Convert Color to hex string
+        String colorHex = String.format("#%02X%02X%02X",
+            (int)(color.getRed() * 255),
+            (int)(color.getGreen() * 255),
+            (int)(color.getBlue() * 255));
+        
+        button.setStyle(
+            "-fx-background-color: " + colorHex + ";" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 10;"
+        );
+        
+        // Add shadow effect
+        DropShadow shadow = new DropShadow();
+        shadow.setColor(Color.color(0, 0, 0, 0.3));
+        shadow.setRadius(10);
+        shadow.setOffsetY(5);
+        button.setEffect(shadow);
+        
+        // Add hover effect
+        button.setOnMouseEntered(e -> {
+            button.setStyle(
+                "-fx-background-color: derive(" + colorHex + ", -10%);" +
+                "-fx-text-fill: white;" +
+                "-fx-background-radius: 10;"
+            );
+        });
+        
+        button.setOnMouseExited(e -> {
+            button.setStyle(
+                "-fx-background-color: " + colorHex + ";" +
+                "-fx-text-fill: white;" +
+                "-fx-background-radius: 10;"
+            );
+        });
+        
         return button;
     }
     
