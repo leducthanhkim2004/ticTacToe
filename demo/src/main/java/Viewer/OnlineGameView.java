@@ -435,14 +435,11 @@ public class OnlineGameView extends Application {
         HBox chatHeader = new HBox(10);
         chatHeader.setAlignment(Pos.CENTER_LEFT);
         
-        Label chatIconLabel = new Label("💬");
-        chatIconLabel.setFont(Font.font("Arial", 18));
-        
         Label chatTitle = new Label("Chat");
         chatTitle.setFont(Font.font("Arial", FontWeight.BOLD, 18));
         chatTitle.setStyle("-fx-text-fill: #303F9F;");
         
-        chatHeader.getChildren().addAll(chatIconLabel, chatTitle);
+        chatHeader.getChildren().add(chatTitle);
         
         // Chat area with better styling
         chatArea = new TextArea();
@@ -490,27 +487,7 @@ public class OnlineGameView extends Application {
         sendButton.setStyle(
             "-fx-background-color: #3F51B5;" +
             "-fx-text-fill: white;" +
-            "-fx-background-radius: 20px;" +
-            "-fx-cursor: hand;"
-        );
-        
-        // Add hover effect to button
-        sendButton.setOnMouseEntered(e -> 
-            sendButton.setStyle(
-                "-fx-background-color: #303F9F;" +
-                "-fx-text-fill: white;" +
-                "-fx-background-radius: 20px;" +
-                "-fx-cursor: hand;"
-            )
-        );
-        
-        sendButton.setOnMouseExited(e -> 
-            sendButton.setStyle(
-                "-fx-background-color: #3F51B5;" +
-                "-fx-text-fill: white;" +
-                "-fx-background-radius: 20px;" +
-                "-fx-cursor: hand;"
-            )
+            "-fx-background-radius: 20px;"
         );
         
         // Add action handlers

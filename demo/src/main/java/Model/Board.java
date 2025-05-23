@@ -39,7 +39,17 @@ public class Board  implements BoardGame{
     }
     @Override
     public boolean checkWin(Player player) {
-        return isDiagonalWin(player) || isHorizontalWin(player) || isVerticalWin(player);
+        // Add debugging to see all win check operations
+        boolean horizontal = isHorizontalWin(player);
+        boolean vertical = isVerticalWin(player);
+        boolean diagonal = isDiagonalWin(player);
+        
+        System.out.println("Check win for " + player.getName() + " with symbol " + player.getSymbol());
+        System.out.println("- Horizontal win: " + horizontal);
+        System.out.println("- Vertical win: " + vertical);
+        System.out.println("- Diagonal win: " + diagonal);
+        
+        return horizontal || vertical || diagonal;
     }
 
     public boolean isDiagonalWin(Player player) {
@@ -59,16 +69,20 @@ public class Board  implements BoardGame{
     }
     @Override
     public boolean isHorizontalWin(Player player) {
+        Symbol playerSymbol = player.getSymbol();
+        System.out.println("Checking horizontal win for player " + player.getName() + " with symbol " + playerSymbol);
         
-        for(int i = 0 ; i< 3 ;i++){
-          boolean flag =true;
-          for(int j  = 0 ; j<3 ;j++){
-                if(cells[i][j].getSymbol()!= player.getSymbol()){
-                    flag =false;
-                    return false;
-                }
-          }
-            if(flag){
+        // Print the board for debugging
+        printBoardDebug();
+        
+        // Check each row
+        for(int i = 0; i < 3; i++) {
+            // Check if all cells in this row have player's symbol
+            if (cells[i][0].getSymbol() == playerSymbol &&
+                cells[i][1].getSymbol() == playerSymbol &&
+                cells[i][2].getSymbol() == playerSymbol) {
+                System.out.println("HORIZONTAL WIN DETECTED for " + player.getName() + 
+                                  " in row " + i + " with symbol " + playerSymbol);
                 return true;
             }
         }
@@ -92,5 +106,18 @@ public class Board  implements BoardGame{
     }
     public Cell[][] getCells() {
         return cells;
+    }
+
+    // Helper method to print the board state for debugging
+    private void printBoardDebug() {
+        System.out.println("Current board state:");
+        for (int i = 0; i < 3; i++) {
+            System.out.print("Row " + i + ": ");
+            for (int j = 0; j < 3; j++) {
+                Symbol symbol = cells[i][j].getSymbol();
+                System.out.print("[" + (symbol == null ? "-" : symbol) + "] ");
+            }
+            System.out.println();
+        }
     }
 }

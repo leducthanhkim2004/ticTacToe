@@ -1,4 +1,4 @@
-CREATE TABLE tictactoe.Users (
+CREATE TABLE tictactoe.players (
     User_ID INT PRIMARY KEY AUTO_INCREMENT,
     User_Name VARCHAR(50) NOT NULL UNIQUE,
     User_Pass VARCHAR(100) UNIQUE, -- increased to 100 for hashed passwords
@@ -7,7 +7,7 @@ CREATE TABLE tictactoe.Users (
     GameDraw INT DEFAULT 0,
     GameLose INT DEFAULT 0;
 );
-INSERT INTO tictactoe.Users (User_Name, User_Pass)
+INSERT INTO tictactoe.players (User_Name, User_Pass)
 VALUES
 ('alice', 'hash1'),
 ('bob', 'hash2'),

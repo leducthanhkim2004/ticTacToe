@@ -20,13 +20,19 @@ public abstract class AbstractGame implements GameInterface {
         if (gameOver || !board.makeMove(row, column, currentPlayer)) {
             return false;
         }
+        
+        System.out.println("Checking win condition for " + currentPlayer.getName() + 
+                          " after move at row=" + row + ", col=" + column);
+        
         if (board.checkWin(currentPlayer)) {
+            System.out.println("Win condition detected for " + currentPlayer.getName());
             gameOver = true;
             winner = currentPlayer;
             return true;
         } else if (board.isBoardFull()) {
+            System.out.println("Board is full - game is a draw");
             gameOver = true;
-            winner=null;
+            winner = null; // Draw
             return true;
         } else {
             switchPlayer();
