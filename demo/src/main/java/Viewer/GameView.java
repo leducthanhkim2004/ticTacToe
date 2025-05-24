@@ -1,3 +1,4 @@
+
 package Viewer;
 
 import Control.GameController;
@@ -423,4 +424,4 @@ public class GameView extends Application {
     public static void main(String[] args) {
         launch(args);
     }
-}
+} 

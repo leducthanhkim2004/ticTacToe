@@ -17,7 +17,7 @@ public class Game extends AbstractGame {
             winner = currentPlayer; // Set the winner!
             return true;
         } 
-        else  if (board.isBoardFull()) {
+        else if (board.isBoardFull()) {
             gameOver = true;
             // winner remains null for a draw
             return true;
@@ -42,5 +42,16 @@ public class Game extends AbstractGame {
 
     protected void switchPlayer() {
         currentPlayer = (currentPlayer == player1) ? player2 : player1;
+    }
+    
+    // Add these methods to satisfy the interface requirements
+    @Override
+    public void setGameOver(boolean isGameOver) {
+        this.gameOver = isGameOver;
+    }
+    
+    @Override
+    public void setWinner(Player winner) {
+        this.winner = winner;
     }
 }

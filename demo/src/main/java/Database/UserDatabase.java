@@ -522,4 +522,38 @@ public class UserDatabase {
         
         return null;
     }
+    
+    // Modify score update methods to check game mode
+    public static void updatePlayerScore(Player player, boolean win) {
+        // Check if player is null
+        if (player == null) {
+            System.err.println("Cannot update score for null player");
+            return;
+        }
+        
+        // Skip update for guest players
+        if (player.getName() == null || player.getName().startsWith("Guest")) {
+            System.out.println("Skipping score update for guest player: " + player.getName());
+            return;
+        }
+        
+        // Proceed with database update for online games
+        try (Connection conn = getConnection()) {
+            String sql = "UPDATE players SET Score = Score + ? WHERE User_Name = ?";
+            
+            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                pstmt.setInt(1, win ? 3 : 0); // 3 points for win, 0 for loss
+                pstmt.setString(2, player.getName());
+                
+                int rowsAffected = pstmt.executeUpdate();
+                if (rowsAffected > 0) {
+                    System.out.println("Score updated for " + player.getName() + ": " + (win ? "Win" : "Loss"));
+                } else {
+                    System.err.println("Failed to update score for " + player.getName());
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error updating player score: " + e.getMessage());
+        }
+    }
 }

@@ -1,9 +1,9 @@
 package comnet;
 
-import Viewer.GameView;
-import Viewer.OnlineGameView;
+
 import Viewer.LoginView;
-import Factory.GameFactory.GameType;
+
+
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -65,7 +65,7 @@ public class App extends Application {
         titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 36));
         titleLabel.setTextFill(Color.DARKBLUE);
         
-        Label subtitleLabel = new Label("Select a game mode to start playing");
+        Label subtitleLabel = new Label("Login to play online");
         subtitleLabel.setFont(Font.font("Arial", FontWeight.NORMAL, 16));
         
         topPanel.getChildren().addAll(titleLabel, subtitleLabel);
@@ -86,27 +86,12 @@ public class App extends Application {
             }
         });
         
-        // Game mode buttons
-        Button localStandardButton = createButton("Local Game - Standard (3×3)", Color.BLUE, Color.WHITE);
-        localStandardButton.setOnAction(e -> startLocalGame(GameType.STANDARD));
-        
-        Button localUltimateButton = createButton("Local Game - Ultimate (9×9)", Color.BLUE, Color.WHITE);
-        localUltimateButton.setOnAction(e -> startLocalGame(GameType.ULTIMATE));
-        
-        Button onlineButton = createButton("Online Multiplayer", Color.BLUE, Color.WHITE);
-        onlineButton.setOnAction(e -> {
-            showError("Please login first to access online play features.");
-        });
-        
         // Exit button
         Button exitButton = createButton("Exit Game", Color.RED, Color.WHITE);
         exitButton.setOnAction(e -> primaryStage.close());
         
         centerPanel.getChildren().addAll(
             loginButton,
-            localStandardButton,
-            localUltimateButton,
-            onlineButton,
             exitButton
         );
         
@@ -159,18 +144,6 @@ public class App extends Application {
             (int)(color.getRed() * 255),
             (int)(color.getGreen() * 255),
             (int)(color.getBlue() * 255));
-    }
-
-    private void startLocalGame(GameType gameType) {
-        Stage gameStage = new Stage();
-        GameView gameView = new GameView(gameType);
-        
-        // Set window title based on game type
-        gameStage.setTitle(gameType == GameType.STANDARD ? 
-            "Tic Tac Toe - Standard Game" : 
-            "Tic Tac Toe - Ultimate Game");
-        
-        gameView.start(gameStage);
     }
 
     private void showError(String message) {

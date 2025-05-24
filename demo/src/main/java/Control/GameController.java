@@ -41,4 +41,11 @@ public class GameController {
         this.game = game;
     }
     
+    public void handleWin(Player player) {
+        // Only end the game, don't update database
+        game.setGameOver(true);
+        game.setWinner(player);
+        
+        // NO database updates here
+    }
 }

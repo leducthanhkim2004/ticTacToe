@@ -8,6 +8,7 @@ public class Player {
     private int game_Win;
     private int game_Lose;
     private int game_Draw;
+
     public Player(String name, Symbol symbol) {
         this.name = name;
         this.symbol = symbol;

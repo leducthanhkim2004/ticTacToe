@@ -28,6 +28,9 @@ public class Server {
     // Map to track active game sessions
     private Map<String, gameSession> activeSessions = new ConcurrentHashMap<>();
     
+    // Add a new map to track active player usernames
+    private final Map<String, playerHandler> activePlayerUsernames = new ConcurrentHashMap<>();
+
     public Server() {
         // Initialize waiting lists for each game type
         for (GameType type : GameType.values()) {
@@ -85,10 +88,24 @@ public class Server {
         pairPlayers(gameType);
     }
     
+    /**
+     * Removes a player from the waiting list
+     * @param player Player to remove
+     */
     public synchronized void removeFromWaitingList(playerHandler player) {
-        for (List<playerHandler> list : waitingLists.values()) {
-            list.remove(player);
+        String username = player.getPlayerName();
+        GameType type = player.getSelectedGameType();
+        
+        if (type != null) {
+            waitingLists.get(type).remove(player);
         }
+        
+        // Also remove from active players
+        if (username != null) {
+            removeActivePlayer(username);
+        }
+        
+        System.out.println("Player removed from waiting list: " + username);
     }
     
     private synchronized void pairPlayers(GameType gameType) {
@@ -143,5 +160,32 @@ public class Server {
         }
         
         System.out.println("Server shutdown complete");
+    }
+    
+    /**
+     * Check if a player with the given username is already active
+     * @param username Username to check
+     * @return true if player is already active, false otherwise
+     */
+    public synchronized boolean isPlayerActive(String username) {
+        return activePlayerUsernames.containsKey(username) && 
+               !username.startsWith("Guest"); // Allow multiple guests with different IDs
+    }
+
+    /**
+     * Register a player as active
+     * @param username Player's username
+     * @param handler Player's connection handler
+     */
+    public synchronized void registerPlayer(String username, playerHandler handler) {
+        activePlayerUsernames.put(username, handler);
+    }
+
+    /**
+     * Remove a player from active players
+     * @param username Player's username
+     */
+    public synchronized void removeActivePlayer(String username) {
+        activePlayerUsernames.remove(username);
     }
 }

@@ -60,6 +60,17 @@ public abstract class AbstractGame implements GameInterface {
         return winner;
     }
 
+    @Override
+    public void endGame(Player winner) {
+        gameOver = true;
+        this.winner = winner;
+        
+        // Remove any database calls from here
+        // Only log the result
+        System.out.println("Game ended. Winner: " + 
+                           (winner != null ? winner.getName() : "Draw"));
+    }
+
     protected void switchPlayer() {
         currentPlayer = (currentPlayer == player1) ? player2 : player1;
     }

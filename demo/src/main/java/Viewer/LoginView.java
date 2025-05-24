@@ -391,14 +391,6 @@ public class LoginView extends Application {
         gameButtons.setAlignment(Pos.CENTER);
         gameButtons.setPadding(new Insets(20, 0, 20, 0));
         
-        // Standard game button
-        Button standardGameButton = createGameButton("Standard Tic Tac Toe (3×3)", Color.web("#007bff"));
-        standardGameButton.setOnAction(e -> startLocalGame(GameType.STANDARD));
-        
-        // Ultimate game button
-        Button ultimateGameButton = createGameButton("Ultimate Tic Tac Toe (9×9)", Color.web("#17a2b8"));
-        ultimateGameButton.setOnAction(e -> startLocalGame(GameType.ULTIMATE));
-        
         // Online game button
         Button onlineGameButton = createGameButton("Online Multiplayer", Color.web("#28a745"));
         onlineGameButton.setOnAction(e -> startOnlineGame());
@@ -409,8 +401,6 @@ public class LoginView extends Application {
         
         // Add all game buttons
         gameButtons.getChildren().addAll(
-            standardGameButton,
-            ultimateGameButton,
             onlineGameButton,
             statsButton
         );
@@ -582,25 +572,6 @@ public class LoginView extends Application {
         }
         mainLayout.setCenter(leaderboardPanel);
         primaryStage.setTitle("TicTacToe - Leaderboard");
-    }
-    
-    private void startLocalGame(GameType gameType) {
-        try {
-            Stage gameStage = new Stage();
-            GameView gameView = new GameView(gameType);
-            
-            // Set the player information before starting game
-            gameView.setPlayer1(loggedInPlayer);
-            gameView.setPlayer2(new Player("Player 2", Symbol.O));
-            
-            // Set callback for game over to update player stats
-            gameView.setGameOverCallback(this::updatePlayerStats);
-            
-            gameView.start(gameStage);
-        } catch (Exception e) {
-            showErrorAlert("Error", "Failed to start the game: " + e.getMessage());
-            e.printStackTrace();
-        }
     }
     
     private void startOnlineGame() {

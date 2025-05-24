@@ -6,6 +6,13 @@
     "configurations": [
         {
             "type": "java",
+            "name": "LoginView",
+            "request": "launch",
+            "mainClass": "comnet.demo/Viewer.LoginView",
+            "projectName": "demo"
+        },
+        {
+            "type": "java",
             "name": "App",
             "request": "launch",
             "mainClass": "comnet.demo/comnet.App",

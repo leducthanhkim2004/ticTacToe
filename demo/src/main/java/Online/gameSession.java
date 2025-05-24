@@ -333,6 +333,7 @@ public class gameSession implements Runnable {
         }
     }
     
+    // Modify updatePlayerStats method to be responsible for database updates only
     private void updatePlayerStats(Player winner) {
         // Only update stats if players are not guests
         Player p1 = player1.getPlayer();
@@ -344,26 +345,51 @@ public class gameSession implements Runnable {
                 
                 try {
                     if (winner == null) {
-                        // For a draw, we pass a special flag to indicate this
+                        // It's a draw - update database directly
                         System.out.println("Recording DRAW between " + p1.getName() + " and " + p2.getName());
-                        // IMPORTANT: Use a different method for draw to avoid double-counting
                         Database.UserDatabase.recordDraw(p1.getName(), p2.getName());
                     } else if (winner == p1) {
-                        // Clear win/loss case
+                        // Player 1 won - update database directly
                         System.out.println("Recording WIN for " + p1.getName() + " against " + p2.getName());
-                        // IMPORTANT: We're skipping the callback to LoginView to avoid double-counting
                         Database.UserDatabase.recordWinLoss(p1.getName(), p2.getName());
                     } else if (winner == p2) {
-                        // Clear win/loss case
+                        // Player 2 won - update database directly
                         System.out.println("Recording WIN for " + p2.getName() + " against " + p1.getName());
-                        // IMPORTANT: We're skipping the callback to LoginView to avoid double-counting
                         Database.UserDatabase.recordWinLoss(p2.getName(), p1.getName());
                     }
+                    
+                    // Send updated player data to clients so UI reflects current state
+                    sendUpdatedPlayerData();
                 } catch (Exception e) {
                     System.err.println("Error updating stats: " + e.getMessage());
                     e.printStackTrace();
                 }
             }
+        }
+    }
+    
+    // Add this method to send updated player data
+    private void sendUpdatedPlayerData() {
+        // Fetch fresh data from database
+        Player updatedP1 = Database.UserDatabase.getPlayer(player1.getPlayer().getName());
+        Player updatedP2 = Database.UserDatabase.getPlayer(player2.getPlayer().getName());
+        
+        if (updatedP1 != null) {
+            // Send player 1 their updated stats
+            player1.sendMessage("PLAYER_STATS:" + 
+                               updatedP1.getGame_Win() + ":" + 
+                               updatedP1.getGame_Lose() + ":" +
+                               updatedP1.getGame_Draw() + ":" +
+                               updatedP1.getScore());
+        }
+        
+        if (updatedP2 != null) {
+            // Send player 2 their updated stats
+            player2.sendMessage("PLAYER_STATS:" + 
+                               updatedP2.getGame_Win() + ":" + 
+                               updatedP2.getGame_Lose() + ":" +
+                               updatedP2.getGame_Draw() + ":" +
+                               updatedP2.getScore());
         }
     }
     
@@ -383,13 +409,10 @@ public class gameSession implements Runnable {
                     otherPlayer.getName() != null && !otherPlayer.getName().startsWith("Guest")) {
                     
                     try {
-                        // IMPORTANT CHANGE: Use recordWinLoss instead of recordGameResult
-                        // to avoid duplicate updates from the old method
                         Database.UserDatabase.recordWinLoss(
                             otherPlayer.getName(), 
                             disconnectedPlayer.getName()
                         );
-                        
                         System.out.println("Recording WIN for " + otherPlayer.getName() + 
                                           " due to " + disconnectedPlayer.getName() + " disconnecting");
                     } catch (Exception e) {
@@ -400,20 +423,24 @@ public class gameSession implements Runnable {
             }
         }
         
-        // Notify the other player
-        if (player == player1 && player2 != null) {
-            player2.sendMessage("OPPONENT_DISCONNECTED");
-            player2.endGame();
-        } else if (player == player2 && player1 != null) {
+        // Make sure both players are notified
+        if (player1 != null && player1 != player) {
             player1.sendMessage("OPPONENT_DISCONNECTED");
             player1.endGame();
+        }
+        
+        if (player2 != null && player2 != player) {
+            player2.sendMessage("OPPONENT_DISCONNECTED");
+            player2.endGame();
         }
         
         // End the session
         server.endGameSession(sessionId);
     }
  
+    // Fix handleChat method to avoid username redundancy
     public void handleChat(playerHandler from, String message) {
+        // Only include the username once here
         String chatMessage = "CHAT:" + from.getPlayerName() + ":" + message;
         broadcast(chatMessage);
     }
@@ -425,5 +452,35 @@ public class gameSession implements Runnable {
     
     public String getSessionId() {
         return sessionId;
+    }
+    
+    // Modify the endGame method to send updates to clients after the game ends
+    private void endGame(Player winner) {
+        gameStarted = false;  // Mark game as not started
+        gameOver = true;     // Mark game as over
+        
+        if (winner == null) {
+            // It's a draw
+            player1.sendMessage("GAME_OVER:DRAW");
+            player2.sendMessage("GAME_OVER:DRAW");
+            
+            // Update database
+            updatePlayerStats(null);
+        } else if (winner == player1.getPlayer()) {
+            player1.sendMessage("GAME_OVER:WIN");
+            player2.sendMessage("GAME_OVER:LOSE");
+            
+            // Update database
+            updatePlayerStats(player1.getPlayer());
+        } else {
+            player1.sendMessage("GAME_OVER:LOSE");
+            player2.sendMessage("GAME_OVER:WIN");
+            
+            // Update database  
+            updatePlayerStats(player2.getPlayer());
+        }
+        
+        // IMPORTANT: Add this to send fresh data from database
+        sendUpdatedPlayerData();
     }
 }
