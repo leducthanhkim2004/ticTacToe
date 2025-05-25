@@ -20,7 +20,7 @@ public class Server {
     private ServerSocket serverSocket;
     private boolean running = false;
     private ExecutorService clientPool;
-    private ExecutorService gamePool;
+    private ExecutorService gamePool;   
     
     // Maps to track waiting players by game type
     private Map<GameType, List<playerHandler>> waitingLists = new HashMap<>();

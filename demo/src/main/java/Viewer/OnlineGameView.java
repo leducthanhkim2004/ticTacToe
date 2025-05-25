@@ -3,6 +3,7 @@ package Viewer;
 import javafx.animation.RotateTransition;
 import javafx.animation.Interpolator;
 import javafx.util.Duration;
+
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.geometry.Insets;
@@ -28,7 +29,7 @@ import java.util.Random;
 import java.util.function.Consumer;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-
+import javafx.scene.control.ProgressBar;
 public class OnlineGameView extends Application {
     private Socket socket;
     private DataInputStream in;
@@ -54,6 +55,14 @@ public class OnlineGameView extends Application {
     private Label opponentLabel;
     private Label playerInfoLabel;
     private String mySymbolStr;
+
+    // Add these fields to the class
+    private Label timerLabel;
+    private ProgressBar timerProgressBar;
+    private int timeLeft = 60; // 60 seconds per turn
+
+    // Add this constant at the top of your OnlineGameView class
+    private static final int TURN_TIME_LIMIT = 60; // 60 seconds, same as in gameSession
 
     @Override
     public void start(Stage primaryStage) {
@@ -272,13 +281,55 @@ public class OnlineGameView extends Application {
 
     private void setupGameInterface() {
         GridPane boardGrid = createGameBoard(boardSize);
-
         VBox chatBox = createChatPanel();
 
+        // Create timer display with better visibility
+        HBox timerBox = new HBox(10);
+        timerBox.setAlignment(Pos.CENTER);
+        timerBox.setPadding(new Insets(10));
+        timerBox.setStyle("-fx-background-color: rgba(255,255,255,0.9); -fx-background-radius: 10px; -fx-border-color: #CCCCCC; -fx-border-radius: 10px; -fx-border-width: 1px;");
+        
+        // Add a clock icon for visual appeal
+        Label clockIcon = new Label("⏱");
+        clockIcon.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        
+        // Make the timer text larger and more visible
+        timerLabel = new Label("60s");
+        timerLabel.setFont(Font.font("Arial", FontWeight.BOLD, 22));
+        timerLabel.setStyle("-fx-text-fill: #2E7D32;");
+        
+        timerProgressBar = new ProgressBar(1.0);
+        timerProgressBar.setPrefWidth(200);
+        timerProgressBar.setPrefHeight(20); // Make progress bar taller
+        timerProgressBar.setStyle("-fx-accent: #4CAF50;"); // Green progress bar
+        
+        timerBox.getChildren().addAll(clockIcon, timerProgressBar, timerLabel);
+        
+        // Create a top game info bar that will contain the timer
+        HBox gameTopBar = new HBox(20);
+        gameTopBar.setAlignment(Pos.CENTER);
+        gameTopBar.setPadding(new Insets(10, 10, 5, 10));
+        gameTopBar.getChildren().add(timerBox);
+        
+        // Create the main content that includes the board and top bar
+        VBox centerContent = new VBox(10);
+        centerContent.setAlignment(Pos.CENTER);
+        centerContent.getChildren().addAll(gameTopBar, boardGrid);
+
         Platform.runLater(() -> {
-            root.setCenter(boardGrid);
+            root.setCenter(centerContent); // Set the combined content instead of just the board
             root.setRight(chatBox);
         });
+        
+        // If this is called after game start, update the timer display immediately
+        if (timerLabel != null) {
+            timerLabel.setText("60s");
+            timerLabel.setStyle("-fx-text-fill: #2E7D32;");
+        }
+        if (timerProgressBar != null) {
+            timerProgressBar.setProgress(1.0);
+            timerProgressBar.setStyle("-fx-accent: #4CAF50;");
+        }
     }
 
     private VBox createChatPanel() {
@@ -388,7 +439,19 @@ public class OnlineGameView extends Application {
             try {
                 System.out.println("Received: " + message);
                 
-                // Make sure this handler exists in the handleServerMessage method:
+                // Add this new case to handle timer stop messages
+                if (message.equals("TIMER_STOP")) {
+                    // Hide or reset the timer when game is over
+                    if (timerLabel != null) {
+                        timerLabel.setVisible(false);
+                    }
+                    if (timerProgressBar != null) {
+                        timerProgressBar.setVisible(false);
+                    }
+                    return;
+                }
+                
+                // Handle player stats message
                 if (message.startsWith("PLAYER_STATS:")) {
                     String[] statParts = message.substring("PLAYER_STATS:".length()).split(":");
                     if (statParts.length >= 4) {
@@ -425,8 +488,63 @@ public class OnlineGameView extends Application {
                     return;
                 }
                 
+                // Handle timer message
+                else if (message.startsWith("TIMER:")) {
+                    try {
+                        String[] timerParts = message.substring("TIMER:".length()).split(":");
+                        timeLeft = Integer.parseInt(timerParts[0]);
+                        boolean isMyTimer = timerParts.length > 1 && Boolean.parseBoolean(timerParts[1]);
+                        
+                        Platform.runLater(() -> {
+                            // Update label
+                            timerLabel.setText(timeLeft + "s");
+                            
+                            // IMPORTANT FIX: Use explicit casting to double before division
+                            double progress = (double)timeLeft / (double)TURN_TIME_LIMIT;
+                            timerProgressBar.setProgress(progress);
+                            
+                            // Make sure both timerLabel and timerProgressBar are visible
+                            timerLabel.setVisible(true);
+                            timerProgressBar.setVisible(true);
+                            
+                            // Update turn label based on whose timer it is
+                            try {
+                                Label turnLabel = (Label)((VBox)timerProgressBar.getParent().getParent()).getChildren().get(0);
+                                if (isMyTimer) {
+                                    turnLabel.setText("Your turn");
+                                    turnLabel.setStyle("-fx-text-fill: #2E7D32;");
+                                } else {
+                                    turnLabel.setText("Opponent's turn");
+                                    turnLabel.setStyle("-fx-text-fill: #3F51B5;");
+                                }
+                            } catch (Exception e) {
+                                System.err.println("Error updating turn label: " + e.getMessage());
+                            }
+                            
+                            // Change colors based on time remaining
+                            if (timeLeft <= 10) {
+                                // Red for urgent (less than 10 seconds)
+                                timerLabel.setStyle("-fx-text-fill: #D32F2F;");
+                                timerProgressBar.setStyle("-fx-accent: #F44336;");
+                            } else if (timeLeft <= 20) {
+                                // Yellow for warning (less than 20 seconds)
+                                timerLabel.setStyle("-fx-text-fill: #FF8F00;");
+                                timerProgressBar.setStyle("-fx-accent: #FFC107;");
+                            } else {
+                                // Green for plenty of time
+                                timerLabel.setStyle("-fx-text-fill: #2E7D32;");
+                                timerProgressBar.setStyle("-fx-accent: #4CAF50;");
+                            }
+                        });
+                    } catch (Exception e) {
+                        System.err.println("Error processing timer message: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                    return;
+                }
+                    
                 // Handle game over without updating database
-                if (message.startsWith("GAME_OVER:")) {
+                else if (message.startsWith("GAME_OVER:")) {
                     String result = message.substring("GAME_OVER:".length());
                     
                     switch (result) {
@@ -445,6 +563,16 @@ public class OnlineGameView extends Application {
                         case "DRAW":
                             // Draw - update UI only (server will update DB)
                             statusLabel.setText("Game ended in a draw.");
+                            disableAllButtons();
+                            showGameOverDialog(false, true);
+                            break;
+                        case "WIN_BY_TIMEOUT":
+                            statusLabel.setText("You won! Opponent ran out of time.");
+                            disableAllButtons();
+                            showGameOverDialog(true, true);
+                            break;
+                        case "LOSE_BY_TIMEOUT":
+                            statusLabel.setText("You lost! You ran out of time.");
                             disableAllButtons();
                             showGameOverDialog(false, true);
                             break;
@@ -535,6 +663,36 @@ public class OnlineGameView extends Application {
             
             statusLabel.setText("Game started! You are " + parts[2] + ". Playing against: " + opponentName);
         }
+        
+        // Set up the game interface with board and chat
+        setupGameInterface();
+        
+        // Make sure timerLabel and timerProgressBar are initialized and visible
+        if (timerLabel != null) {
+            timerLabel.setText("60s");
+            timerLabel.setStyle("-fx-text-fill: #2E7D32;");
+        }
+        if (timerProgressBar != null) {
+            timerProgressBar.setProgress(1.0);
+            timerProgressBar.setStyle("-fx-accent: #4CAF50;");
+        }
+        
+        // Update turn label based on who goes first (X always goes first)
+        Platform.runLater(() -> {
+            try {
+                Label turnLabel = (Label)((VBox)timerProgressBar.getParent().getParent()).getChildren().get(0);
+                boolean amIX = "X".equals(mySymbolStr);
+                if (amIX) {
+                    turnLabel.setText("Your turn");
+                    turnLabel.setStyle("-fx-text-fill: #2E7D32;");
+                } else {
+                    turnLabel.setText("Opponent's turn");
+                    turnLabel.setStyle("-fx-text-fill: #3F51B5;");
+                }
+            } catch (Exception e) {
+                System.err.println("Error updating turn label: " + e.getMessage());
+            }
+        });
     }
 
     // Add a simple refresh button to the player info panel
@@ -648,34 +806,34 @@ public class OnlineGameView extends Application {
         }
     }
     
-    private void showGameOverDialog(boolean isWin, boolean isDraw) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Game Over");
+    private void showGameOverDialog(boolean isWin, boolean isTimeout) {
+        String title = isWin ? "You Won!" : "Game Over";
+        String message = isWin ? 
+            (isTimeout ? "Your opponent ran out of time!" : "Congratulations, you won the game!") :
+            (isTimeout ? "You ran out of time!" : "You lost this game. Better luck next time!");
         
-        if (isDraw) {
-            alert.setHeaderText("Draw!");
-            alert.setContentText("The game ended in a draw.");
-        } else if (isWin) {
-            alert.setHeaderText("You win!");
-            alert.setContentText("Congratulations! You have won the game.");
-        } else {
-            alert.setHeaderText("You lose!");
-            alert.setContentText("Better luck next time!");
-        }
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
         
         // Style the dialog
         DialogPane dialogPane = alert.getDialogPane();
         dialogPane.setStyle("-fx-background-color: white; -fx-font-size: 14px;");
         
-        // Display the dialog
         alert.showAndWait();
-        
-        // Show return to lobby button
-        showReturnToLobbyButton();
     }
 
     private void showReturnToLobbyButton() {
         Platform.runLater(() -> {
+            // Reset timer display
+            if (timerLabel != null) {
+                timerLabel.setText("60s");
+            }
+            if (timerProgressBar != null) {
+                timerProgressBar.setProgress(1.0);
+            }
+            
             Button returnButton = new Button("Return to Lobby");
             returnButton.setPrefWidth(200);
             returnButton.setPrefHeight(40);

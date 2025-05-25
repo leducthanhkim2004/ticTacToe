@@ -317,6 +317,8 @@ public class UserDatabase {
     
     /**
      * Update win count for a player
+     * @param conn Database Conection
+     * @param username  Win player
      */
     private static void updateWin(Connection conn, String username) throws SQLException {
         if (username == null || username.trim().isEmpty()) {
@@ -348,6 +350,8 @@ public class UserDatabase {
     
     /**
      * Update loss count for a player
+     * @param conn Database Conection
+     * @param username  Loss player
      */
     private static void updateLoss(Connection conn, String username) throws SQLException {
         if (username == null || username.trim().isEmpty()) {
@@ -379,6 +383,8 @@ public class UserDatabase {
     
     /**
      * Update draw count for a player
+     * @param conn Database Conection
+     * @param username  Draw player
      */
     private static void updateDraw(Connection conn, String username) throws SQLException {
         if (username == null || username.trim().isEmpty()) {
@@ -523,7 +529,11 @@ public class UserDatabase {
         return null;
     }
     
-    // Modify score update methods to check game mode
+    /**
+     * Update score of player when finish a game 
+     * @param player
+     * @param win
+     */
     public static void updatePlayerScore(Player player, boolean win) {
         // Check if player is null
         if (player == null) {

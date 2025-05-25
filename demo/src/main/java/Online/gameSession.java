@@ -1,5 +1,7 @@
 package Online;
 
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
 import Control.GameController;
@@ -15,6 +17,11 @@ public class gameSession implements Runnable {
     private boolean gameOver = false;
     private Server server;
     private GameType gameType;
+    
+    private static final int TURN_TIME_LIMIT = 60; // 60 seconds per turn
+    private Timer turnTimer;
+    private TimerTask currentTimerTask;
+    private int currentPlayerTimeLeft;
     
     public gameSession(playerHandler player1, playerHandler player2, GameType gameType, Server server) {
         this.sessionId = UUID.randomUUID().toString();
@@ -63,7 +70,7 @@ public class gameSession implements Runnable {
     public void startGame() {
         gameStarted = true;
         
-        // Tell players the game is starting using the saved game type
+        // Tell players the game is starting
         String gameTypeStr = gameType.toString();
         player1.sendMessage("GAME_START:" + gameTypeStr + ":X:" + player2.getPlayerName());
         player2.sendMessage("GAME_START:" + gameTypeStr + ":O:" + player1.getPlayerName());
@@ -74,6 +81,9 @@ public class gameSession implements Runnable {
         // X player goes first
         player1.sendMessage("YOUR_TURN:true");
         player2.sendMessage("YOUR_TURN:false");
+        
+        // Start the timer for the first player
+        startTurnTimer();
     }
     
     public void handleMove(playerHandler player, String moveData) {
@@ -123,24 +133,24 @@ public class gameSession implements Runnable {
                     System.out.println("Win detected for " + currentPlayer.getName() + 
                                      " with symbol " + currentPlayer.getSymbol());
                     
-                    // Set game over and winner in the game model
+                    // Set game over and winner
                     setGameOver(currentPlayer);
                     
-                    // Process the game over state
+                    // Process the game over state AND RETURN IMMEDIATELY 
                     handleGameOver();
-                    return;
+                    return;  // Make sure we return here!
                 } else if (gameController.getGame().getBoard().isBoardFull()) {
                     System.out.println("Board is full - game is a draw");
                     
                     // Set game over with no winner (draw)
                     setGameOver(null);
                     
-                    // Process the game over state
+                    // Process the game over state AND RETURN IMMEDIATELY
                     handleGameOver();
-                    return;
+                    return;  // Make sure we return here!
                 }
                 
-                // If no win detected, switch turns
+                // Switch turns
                 switchCurrentPlayer();
                 
                 // Get the new current player and update clients
@@ -148,6 +158,9 @@ public class gameSession implements Runnable {
                 boolean isNowPlayer1Turn = newCurrentPlayer == player1.getPlayer();
                 player1.sendMessage("YOUR_TURN:" + isNowPlayer1Turn);
                 player2.sendMessage("YOUR_TURN:" + !isNowPlayer1Turn);
+                
+                // Restart the timer for the next player
+                startTurnTimer();
             } else {
                 player.sendMessage("ERROR:InvalidMove");
             }
@@ -168,6 +181,15 @@ public class gameSession implements Runnable {
     private void setGameOver(Player winner) {
         // Mark the game as over
         gameOver = true;
+        
+        // Cancel any active timer IMMEDIATELY when game is over
+        if (currentTimerTask != null) {
+            currentTimerTask.cancel();
+            currentTimerTask = null;
+        }
+        if (turnTimer != null) {
+            turnTimer.purge();
+        }
         
         // Set the winner in the game model
         GameInterface game = gameController.getGame();
@@ -298,6 +320,9 @@ public class gameSession implements Runnable {
      */
     private void handleGameOver() {
         try {
+            // Cancel timer immediately at the START of handleGameOver
+            cancelTimer();
+            
             GameInterface game = gameController.getGame();
             Player winner = game.getWinner();
             
@@ -331,6 +356,26 @@ public class gameSession implements Runnable {
             System.err.println("Error handling game over: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+    
+    /**
+     * Create a separate method for canceling timer to ensure it's done consistently
+     */
+    private void cancelTimer() {
+        // Cancel any active timer task
+        if (currentTimerTask != null) {
+            currentTimerTask.cancel();
+            currentTimerTask = null;
+        }
+        
+        // Purge canceled tasks from timer
+        if (turnTimer != null) {
+            turnTimer.purge();
+        }
+        
+        // Send a final TIMER_STOP message to both clients
+        if (player1 != null) player1.sendMessage("TIMER_STOP");
+        if (player2 != null) player2.sendMessage("TIMER_STOP");
     }
     
     // Modify updatePlayerStats method to be responsible for database updates only
@@ -482,5 +527,94 @@ public class gameSession implements Runnable {
         
         // IMPORTANT: Add this to send fresh data from database
         sendUpdatedPlayerData();
+    }
+    
+    /**
+     * Starts or restarts the timer for the current player's turn
+     */
+    private void startTurnTimer() {
+        // Cancel any existing timer
+        if (currentTimerTask != null) {
+            currentTimerTask.cancel();
+        }
+        
+        // Reset time for new turn
+        currentPlayerTimeLeft = TURN_TIME_LIMIT;
+        
+        // Initialize the timer if needed
+        if (turnTimer == null) {
+            turnTimer = new Timer(true); // Run as daemon
+        }
+        
+        // Get current player
+        Player currentPlayer = gameController.getGame().getCurrentPlayer();
+        boolean isPlayer1Turn = (currentPlayer == player1.getPlayer());
+        
+        // Broadcast initial time with player info
+        player1.sendMessage("TIMER:" + currentPlayerTimeLeft + ":" + isPlayer1Turn);
+        player2.sendMessage("TIMER:" + currentPlayerTimeLeft + ":" + !isPlayer1Turn);
+        
+        currentTimerTask = new TimerTask() {
+            @Override
+            public void run() {
+                currentPlayerTimeLeft--;
+                
+                // Send time update every second with player info
+                player1.sendMessage("TIMER:" + currentPlayerTimeLeft + ":" + isPlayer1Turn);
+                player2.sendMessage("TIMER:" + currentPlayerTimeLeft + ":" + !isPlayer1Turn);
+                
+                // Check if time has expired
+                if (currentPlayerTimeLeft <= 0) {
+                    handleTimeExpired();
+                }
+            }
+        };
+        
+        // Schedule the timer to run every second
+        turnTimer.scheduleAtFixedRate(currentTimerTask, 1000, 1000);
+    }
+
+    /**
+     * Handles the case when a player's time expires
+     */
+    private void handleTimeExpired() {
+        try {
+            // First check if the game is already over to avoid double processing
+            if (gameOver) {
+                System.out.println("Timer expired but game is already over. Ignoring timeout.");
+                return;
+            }
+            
+            // Get the current player who ran out of time
+            Player currentPlayer = gameController.getGame().getCurrentPlayer();
+            Player winner = (currentPlayer == player1.getPlayer()) ? player2.getPlayer() : player1.getPlayer();
+            
+            System.out.println("Time expired for " + currentPlayer.getName() + 
+                              ". " + winner.getName() + " wins by timeout.");
+            
+            // Use the centralized timer cancellation
+            cancelTimer();
+            
+            // Set game as over with the winner being the opponent
+            setGameOver(winner);
+            
+            // Notify players about the timeout
+            if (winner == player1.getPlayer()) {
+                player1.sendMessage("GAME_OVER:WIN_BY_TIMEOUT");
+                player2.sendMessage("GAME_OVER:LOSE_BY_TIMEOUT");
+            } else {
+                player1.sendMessage("GAME_OVER:LOSE_BY_TIMEOUT");
+                player2.sendMessage("GAME_OVER:WIN_BY_TIMEOUT");
+            }
+            
+            // Update database stats
+            updatePlayerStats(winner);
+            
+            // Send fresh data from database
+            sendUpdatedPlayerData();
+        } catch (Exception e) {
+            System.err.println("Error handling timer expiration: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }

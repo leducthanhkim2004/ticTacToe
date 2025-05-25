@@ -9,4 +9,6 @@ public interface GameInterface {
     void endGame(Player winner);
     void setGameOver(boolean isGameOver);
     void setWinner(Player winner);
+    
+    
 }

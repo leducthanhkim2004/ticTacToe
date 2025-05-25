@@ -1,5 +1,7 @@
 package Model;
 
+import java.util.TimerTask;
+
 public abstract class AbstractGame implements GameInterface {
     protected BoardGame board;
     protected Player currentPlayer;
@@ -7,12 +9,15 @@ public abstract class AbstractGame implements GameInterface {
     protected Player player2;
     protected boolean gameOver;
     protected Player winner;
+    private boolean gameStarted; // Add this line
+    private TimerTask currentTimerTask; // Add this line
 
     public AbstractGame(Player player1, Player player2) {
         this.player1 = player1;
         this.player2 = player2;
         this.currentPlayer = player1;
         this.gameOver = false;
+        this.gameStarted = false; // Initialize here
     }
 
     @Override
@@ -62,8 +67,14 @@ public abstract class AbstractGame implements GameInterface {
 
     @Override
     public void endGame(Player winner) {
+        gameStarted = false;
         gameOver = true;
-        this.winner = winner;
+        
+        // Cancel any active timer
+        if (currentTimerTask != null) {
+            currentTimerTask.cancel();
+            currentTimerTask = null;
+        }
         
         // Remove any database calls from here
         // Only log the result
