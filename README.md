@@ -163,3 +163,5 @@ This is a multiplayer Tic-Tac-Toe game developed as the final project for the **
 - **Tran Nguyen Minh Tri**
 - **Nguyen Hoang Hao**
 - Developed for **Computer Networking 2**, VGU, 2025.
+## 📝 Document
+- Here is our document as Power Point file for our project [HERE](https://1drv.ms/p/c/7f3aad921b2c8898/Ecp3Ka1yhcdHhg2bv7WTZ3ABGp_6p7PKe24mOWS0eLBO7w?e=NwkDK4)
