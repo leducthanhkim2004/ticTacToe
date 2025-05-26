@@ -42,7 +42,6 @@ public class OnlineGameView extends Application {
     private TextArea chatArea;
     private int boardSize = 3;
     private boolean isMyTurn = false;
-    private Symbol mySymbol;
     private Stage primaryStage;
     private BorderPane root;
     private GridPane boardGrid;

@@ -499,35 +499,6 @@ public class gameSession implements Runnable {
         return sessionId;
     }
     
-    // Modify the endGame method to send updates to clients after the game ends
-    private void endGame(Player winner) {
-        gameStarted = false;  // Mark game as not started
-        gameOver = true;     // Mark game as over
-        
-        if (winner == null) {
-            // It's a draw
-            player1.sendMessage("GAME_OVER:DRAW");
-            player2.sendMessage("GAME_OVER:DRAW");
-            
-            // Update database
-            updatePlayerStats(null);
-        } else if (winner == player1.getPlayer()) {
-            player1.sendMessage("GAME_OVER:WIN");
-            player2.sendMessage("GAME_OVER:LOSE");
-            
-            // Update database
-            updatePlayerStats(player1.getPlayer());
-        } else {
-            player1.sendMessage("GAME_OVER:LOSE");
-            player2.sendMessage("GAME_OVER:WIN");
-            
-            // Update database  
-            updatePlayerStats(player2.getPlayer());
-        }
-        
-        // IMPORTANT: Add this to send fresh data from database
-        sendUpdatedPlayerData();
-    }
     
     /**
      * Starts or restarts the timer for the current player's turn

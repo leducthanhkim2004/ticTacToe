@@ -3,7 +3,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import Model.Player;
-import Model.Symbol;
+
 
 public class UserDatabase {
     private static final String URL = "jdbc:mysql://localhost:3306/tictactoe";

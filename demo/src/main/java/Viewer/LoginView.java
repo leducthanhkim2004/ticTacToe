@@ -2,9 +2,7 @@ package Viewer;
 
 import Database.UserDatabase;
 import Model.Player;
-import Model.Symbol;
-import Factory.GameFactory.GameType;
-import comnet.App;
+
 
 import javafx.application.Application;
 import javafx.application.Platform;
