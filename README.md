@@ -32,7 +32,7 @@ This is a multiplayer Tic-Tac-Toe game developed as the final project for the **
 ## ⚙️ Setup Instructions
 1. **📥 Clone the Repository**:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/leducthanhkim2004/ticTacToe.git
    cd tic-tac-toe-multiplayer
    ```
 
@@ -75,11 +75,7 @@ This is a multiplayer Tic-Tac-Toe game developed as the final project for the **
 
 2. **🎮 Start the Client**:
    - Navigate to the `comnet` directory.
-   - Compile and run `App.java` with JavaFX:
-     ```bash
-     javac --module-path <path-to-javafx-sdk>/lib --add-modules javafx.controls,javafx.fxml App.java
-     java --module-path <path-to-javafx-sdk>/lib --add-modules javafx.controls,javafx.fxml App
-     ```
+   - Compile and run `App.java`
    - Launch multiple client instances to simulate multiple players.
 
 3. **🎲 Playing the Game**:
