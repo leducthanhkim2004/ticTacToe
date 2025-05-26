@@ -33,7 +33,7 @@ This is a multiplayer Tic-Tac-Toe game developed as the final project for the **
 1. **📥 Clone the Repository**:
    ```bash
    git clone https://github.com/leducthanhkim2004/ticTacToe.git
-   cd tic-tac-toe-multiplayer
+   cd ticTacToe
    ```
 
 2. **📦 Install Dependencies**:
